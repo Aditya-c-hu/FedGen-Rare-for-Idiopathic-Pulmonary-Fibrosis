@@ -6,7 +6,7 @@
 [![Domain](https://img.shields.io/badge/Domain-Pulmonology%20%7C%20HRCT-red.svg)]()
 [![Status](https://img.shields.io/badge/Status-Benchmark%20Validated-brightgreen.svg)]()
 
-> **Senior Design Project (SDP) – Review 1**  
+> **Senior Design Project (SDP)**  
 > **Project Title:** Privacy-Preserving Federated Generative Replay for Rare Disease Diagnosis  
 > **Target Clinical Pathology:** Idiopathic Pulmonary Fibrosis (IPF, Orphanet ID: ORPHA:2032)  
 > **Project Guide:** Prof. Mallikarjun Akki  
