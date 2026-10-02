@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large model weight checkpoints (GitHub has 100MB limit per file)
+*.pth
+*.pt
+*.bin
+checkpoints/
+outputs/models/
+
+# Logs and Tensorboard
+*.log
+runs/
+tensorboard/
+experiments/results/tensorboard/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

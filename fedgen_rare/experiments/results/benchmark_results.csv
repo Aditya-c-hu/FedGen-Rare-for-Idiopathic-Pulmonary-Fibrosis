@@ -1,0 +1,5 @@
+,Accuracy,Balanced Accuracy (BACC),Macro-F1 Score,Rare Disease Sensitivity (IPF Recall),AUROC
+FedAvg,100.00%,100.00%,1.0000,100.00%,1.0000
+FedProx,100.00%,100.00%,1.0000,100.00%,1.0000
+FedIIC (MICCAI '23),100.00%,100.00%,1.0000,100.00%,1.0000
+FedGen-Rare (Ours),100.00%,100.00%,1.0000,100.00%,1.0000
