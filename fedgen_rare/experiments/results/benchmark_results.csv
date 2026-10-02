@@ -1,5 +1,5 @@
-,Accuracy,Balanced Accuracy (BACC),Macro-F1 Score,Rare Disease Sensitivity (IPF Recall),AUROC
-FedAvg,100.00%,100.00%,1.0000,100.00%,1.0000
-FedProx,100.00%,100.00%,1.0000,100.00%,1.0000
-FedIIC (MICCAI '23),100.00%,100.00%,1.0000,100.00%,1.0000
-FedGen-Rare (Ours),100.00%,100.00%,1.0000,100.00%,1.0000
+Method,Balanced Acc (%),IPF Recall (%),IPF Precision (%),IPF F1-Score (%),Macro F1 (%),Overall Acc (%),ROC-AUC
+FedAvg,33.33,0.0,0.0,0.0,18.59,38.67,0.6159
+FedProx,33.33,0.0,0.0,0.0,18.59,38.67,1.0
+FedIIC (MICCAI '23),33.33,0.0,0.0,0.0,18.59,38.67,0.6159
+FedGen-Rare (Ours),33.33,0.0,0.0,0.0,18.59,38.67,0.9409
