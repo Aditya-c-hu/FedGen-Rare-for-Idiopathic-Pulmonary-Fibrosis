@@ -1,0 +1,111 @@
+@startuml FedGen-Rare Sequence Diagram
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title FedGen-Rare: Federated Communication Round Sequence\n(Two-Stage Generative Replay Protocol)
+
+participant "Benchmark Runner\n(run_benchmark.py)" as BR
+participant "Federated Server\n(FederatedServer)" as FS
+participant "Global Classifier\nF_θ (ConvNet)" as GC
+participant "Global Generator\nG_ψ (CondFeatGen)" as GG
+participant "Hospital 1\n(HospitalClient)\nIPF: High" as H1
+participant "Hospital K\n(HospitalClient)\nIPF: Zero" as HK
+participant "Test Set\n(IPFChestCTDataset)" as TS
+participant "Metrics Engine\n(evaluate_classifier)" as ME
+
+BR -> FS : initialize(clients, test_set, config)
+activate FS
+FS -> GC : build_classifier('convnet', feature_dim=128)
+FS -> GG : ConditionalFeatureGenerator(noise_dim=64, feature_dim=128)
+FS --> BR : server ready
+
+loop For each Communication Round r = 1..R
+    BR -> FS : train_round_fedgen_rare()
+    activate FS
+
+    ' ── STAGE 1: Federated Generator Update ──
+    note over FS : STAGE 1: Federated Generator Update
+    FS -> GC : distribute θ_global to all clients
+    FS -> GG : distribute ψ_global to all clients
+
+    FS -> H1 : train_generator_locally(G_ψ_local, F_θ_global, steps=5)
+    activate H1
+    H1 -> H1 : compute real feature centroids\nfrom local IPF scans
+    H1 -> GG : forward(noise, target_labels)
+    H1 -> GC : forward_head(gen_features) → logits
+    H1 -> H1 : L_gen = L_CE + λ_fm·L_FM + λ_div·L_DIV
+    H1 -> H1 : optimizer.step()
+    H1 --> FS : return ψ_1 (local generator weights)
+    deactivate H1
+
+    FS -> HK : train_generator_locally(G_ψ_local, F_θ_global, steps=5)
+    activate HK
+    note over HK : Hospital K has 0 IPF cases\nNo real centroids for IPF class
+    HK -> GG : forward(noise, target_labels)
+    HK -> GC : forward_head(gen_features) → logits
+    HK -> HK : L_gen = L_CE + λ_div·L_DIV\n(no L_FM for absent classes)
+    HK -> HK : optimizer.step()
+    HK --> FS : return ψ_K (local generator weights)
+    deactivate HK
+
+    FS -> FS : ψ_global = Σ (n_k/N) · ψ_k\n(FedAvg generator aggregation)
+    FS -> GG : load_state_dict(ψ_global)
+
+    ' ── STAGE 2: Generative Replay Classifier Update ──
+    note over FS : STAGE 2: Classifier Update with Generative Replay
+    FS -> GG : distribute updated ψ_global
+
+    FS -> H1 : train_classifier_with_replay(F_θ_local, G_ψ_global)
+    activate H1
+    H1 -> H1 : extract real features f_real from local HRCT scans
+    H1 -> H1 : count IPF in current batch (n_rare)
+    alt n_rare < target_per_class (enable_generative_replay=True)
+        H1 -> GG : sample(syn_labels=[IPF x target_synthetic])
+        GG --> H1 : f̂_IPF (synthetic latent features)
+        H1 -> H1 : f_combined = concat[f_real, f̂_IPF]\ny_combined = concat[y_real, y_IPF]
+    else sufficient rare samples
+        H1 -> H1 : f_combined = f_real, y_combined = y_real
+    end
+    H1 -> GC : forward_head(f_combined) → logits
+    H1 -> H1 : L_clf = CrossEntropy(logits, y_combined)
+    H1 -> H1 : optimizer.step()
+    H1 --> FS : return θ_1 (local classifier weights)
+    deactivate H1
+
+    FS -> HK : train_classifier_with_replay(F_θ_local, G_ψ_global)
+    activate HK
+    note over HK : Hospital K: 0 IPF in local data\nGenerator supplies ALL IPF training signal
+    HK -> GG : sample(syn_labels=[IPF x target_synthetic])
+    GG --> HK : f̂_IPF
+    HK -> GC : forward_head(concat[f_real, f̂_IPF]) → logits
+    HK -> HK : L_clf = CrossEntropy(...)
+    HK --> FS : return θ_K (local classifier weights)
+    deactivate HK
+
+    FS -> FS : θ_global = Σ (n_k/N) · θ_k\n(FedAvg classifier aggregation)
+    FS -> GC : load_state_dict(θ_global)
+
+    ' ── EVALUATION ──
+    FS -> ME : evaluate_classifier(F_θ_global, test_loader)
+    activate ME
+    ME -> TS : iterate test batches
+    ME -> GC : forward(images) → logits
+    ME -> ME : compute BACC, IPF Recall, F1, AUROC
+    ME --> FS : metrics dict
+    deactivate ME
+
+    FS --> BR : round loss, metrics
+    deactivate FS
+    BR -> BR : log metrics to CSV & console
+end
+
+BR -> BR : plot_benchmark_comparison(results)
+BR -> BR : plot_confusion_matrices(results)
+BR --> FS : benchmark complete
+deactivate FS
+
+@enduml

@@ -129,9 +129,9 @@ class ResNetClassifier(nn.Module):
 
 
 def build_classifier(backbone='convnet', in_channels=1, num_classes=3, feature_dim=128):
-    if backbone == 'resnet18':
+    if backbone in ('resnet18', 'resnet'):
         return ResNetClassifier(in_channels=in_channels, num_classes=num_classes, feature_dim=feature_dim)
     elif backbone == 'convnet':
         return ConvNet(in_channels=in_channels, num_classes=num_classes, feature_dim=feature_dim)
     else:
-        raise ValueError(f"Unsupported backbone: {backbone}")
+        raise ValueError(f"Unsupported backbone: {backbone}. Choose 'convnet' or 'resnet'.")

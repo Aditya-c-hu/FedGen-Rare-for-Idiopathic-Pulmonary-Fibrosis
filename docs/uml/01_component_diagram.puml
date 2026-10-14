@@ -1,0 +1,89 @@
+@startuml FedGen-Rare Component Diagram
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam componentStyle rectangle
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+title FedGen-Rare: System Component Diagram\n(Privacy-Preserving Federated Generative Replay for IPF)
+
+package "Hospital 1 - Tertiary Pulmonary Centre\n[IPF: High, Scanner: Siemens]" as H1 <<Cloud>> {
+    [Local HRCT Dataset] as D1
+    [HospitalClient] as C1
+    [Local ConvNet Classifier] as LC1
+    [Generative Replay Engine] as GR1
+}
+
+package "Hospital 2 - District Community Hospital\n[IPF: Low/Zero, Scanner: GE]" as H2 <<Cloud>> {
+    [Local HRCT Dataset] as D2
+    [HospitalClient] as C2
+    [Local ConvNet Classifier] as LC2
+    [Generative Replay Engine] as GR2
+}
+
+package "Hospital K - Rural PHC\n[IPF: Zero, Scanner: Philips]" as HK <<Cloud>> {
+    [Local HRCT Dataset] as DK
+    [HospitalClient] as CK
+    [Local ConvNet Classifier] as LCK
+    [Generative Replay Engine] as GRK
+}
+
+package "Global Federated Server (Trusted Aggregator)" as Server <<Rectangle>> {
+    [FederatedServer] as FS
+    [Global Diagnostic Classifier F_theta] as GC
+    [Global Conditional Generator G_psi] as GG
+    [FedAvg Aggregator] as AGG
+    [Evaluation Engine] as EVAL
+    [Benchmark Runner] as BR
+}
+
+package "Test & Evaluation" as TestPkg <<Rectangle>> {
+    [Global Held-Out Test Set\n(200 scans, 21 IPF)] as TS
+    [Metrics Engine\n(BACC, Recall, F1, AUROC)] as ME
+    [Visualization Engine\n(Plots, Confusion Matrices)] as VE
+}
+
+package "Configuration" as Cfg <<Rectangle>> {
+    [Config\n(Hyperparams, Dirichlet α, device)] as CFG
+}
+
+D1 --> C1 : local scans
+D2 --> C2 : local scans
+DK --> CK : local scans
+
+C1 --> LC1 : trains locally
+C2 --> LC2 : trains locally
+CK --> LCK : trains locally
+
+GG ..> GR1 : sends G_psi weights
+GG ..> GR2 : sends G_psi weights
+GG ..> GRK : sends G_psi weights
+
+GR1 --> LC1 : synthetic IPF features
+GR2 --> LC2 : synthetic IPF features
+GRK --> LCK : synthetic IPF features
+
+LC1 --> FS : upload Δθ_1, ΔΨ_1
+LC2 --> FS : upload Δθ_2, ΔΨ_2
+LCK --> FS : upload Δθ_K, ΔΨ_K
+
+FS --> GC : FedAvg aggregate
+FS --> GG : FedAvg aggregate
+AGG --> GC : weighted average
+AGG --> GG : weighted average
+
+GC ..> LC1 : distribute θ (next round)
+GC ..> LC2 : distribute θ (next round)
+GC ..> LCK : distribute θ (next round)
+
+EVAL --> ME : compute metrics
+ME --> VE : pass metrics
+TS --> EVAL : test batch
+
+BR --> FS : orchestrate rounds
+CFG --> FS : config params
+CFG --> C1 : config params
+CFG --> C2 : config params
+CFG --> CK : config params
+
+@enduml

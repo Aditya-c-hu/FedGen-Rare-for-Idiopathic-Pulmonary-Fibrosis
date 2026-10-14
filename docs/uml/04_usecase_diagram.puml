@@ -1,0 +1,51 @@
+@startuml FedGen-Rare Use Case Diagram
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+
+title FedGen-Rare: Use Case Diagram
+
+left to right direction
+
+actor "Hospital Radiologist\n/ System Operator" as RO
+actor "Federated Server\n(Trusted Aggregator)" as FS_actor
+actor "Research Engineer\n/ Developer" as DEV
+
+rectangle "FedGen-Rare System" {
+    usecase "Generate Synthetic\nIPF HRCT Benchmark" as UC1
+    usecase "Partition Non-IID\nClient Datasets" as UC2
+    usecase "Train Local Classifier\n(Standard / FedIIC / Replay)" as UC3
+    usecase "Update Conditional\nFeature Generator" as UC4
+    usecase "Aggregate Global\nModels (FedAvg)" as UC5
+    usecase "Evaluate Global\nDiagnostic Performance" as UC6
+    usecase "Run 4-Way Comparative\nBenchmark" as UC7
+    usecase "Save Model\nCheckpoints" as UC8
+    usecase "Generate Benchmark\nVisualizations" as UC9
+    usecase "Execute Module\nTest Suite (pytest)" as UC10
+}
+
+RO --> UC3
+RO --> UC6
+
+FS_actor --> UC4
+FS_actor --> UC5
+FS_actor --> UC6
+
+DEV --> UC1
+DEV --> UC2
+DEV --> UC7
+DEV --> UC8
+DEV --> UC9
+DEV --> UC10
+
+UC7 .> UC1 : <<include>>
+UC7 .> UC2 : <<include>>
+UC7 .> UC3 : <<include>>
+UC7 .> UC4 : <<include>>
+UC7 .> UC5 : <<include>>
+UC7 .> UC6 : <<include>>
+UC7 .> UC9 : <<include>>
+UC3 .> UC4 : <<extend>>\n(FedGen-Rare only)
+UC6 .> UC8 : <<extend>>
+
+@enduml

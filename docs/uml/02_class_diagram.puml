@@ -1,0 +1,162 @@
+@startuml FedGen-Rare Class Diagram
+!theme aws-orange
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classFontStyle bold
+
+title FedGen-Rare: Class Diagram
+
+' ──────────────── CONFIG ────────────────
+class Config {
+    + disease_target : str
+    + num_classes : int
+    + rare_class_idx : int
+    + class_names : list[str]
+    + num_clients : int
+    + non_iid_alpha : float
+    + global_rounds : int
+    + local_epochs : int
+    + batch_size : int
+    + device : str
+    + lr_classifier : float
+    + lr_generator : float
+    + feature_dim : int
+    + noise_dim : int
+    + generator_hidden : list[int]
+    + enable_generative_replay : bool
+    + mu_prox : float
+    + k1_contrastive : float
+    + to_dict() : dict
+}
+
+' ──────────────── DATASET ────────────────
+class IPFChestCTDataset {
+    + images : Tensor[N,1,H,W]
+    + labels : Tensor[N]
+    + scanner_ids : int
+    + __len__() : int
+    + __getitem__(idx) : tuple
+    + get_class_counts(num_classes) : list[int]
+}
+
+class DataPartitioner <<utility>> {
+    + {static} generate_synthetic_ipf_benchmark(num_samples, img_size, seed) : (ndarray, ndarray)
+    + {static} partition_multi_center_non_iid(dataset, num_clients, alpha, seed) : list[IPFChestCTDataset]
+    + {static} get_ipf_federated_environment(num_clients, alpha, num_samples, test_ratio, seed) : tuple
+}
+
+' ──────────────── MODELS ────────────────
+abstract class BaseClassifier {
+    + {abstract} extract_features(x: Tensor) : Tensor
+    + {abstract} forward_head(feat: Tensor) : Tensor
+    + {abstract} forward(x: Tensor, project: bool) : tuple
+}
+
+class ConvNet {
+    - encoder : nn.Sequential
+    - feature_projection : nn.Sequential
+    - fc : nn.Linear
+    - projector : nn.Sequential
+    + extract_features(x) : Tensor[N, feature_dim]
+    + forward_head(feat) : Tensor[N, num_classes]
+    + forward(x, project) : tuple
+}
+
+class ResNetClassifier {
+    - conv1 : nn.Conv2d
+    - layer1..4 : ResNet Layers
+    - feature_projection : nn.Sequential
+    - fc : nn.Linear
+    - projector : nn.Sequential
+    + extract_features(x) : Tensor[N, feature_dim]
+    + forward_head(feat) : Tensor[N, num_classes]
+    + forward(x, project) : tuple
+}
+
+class ConditionalFeatureGenerator {
+    - embedding : nn.Embedding
+    - net : nn.Sequential
+    + forward(noise, labels) : Tensor[N, feature_dim]
+    + sample(labels, device) : Tensor[N, feature_dim]
+}
+
+class BuildClassifier <<factory>> {
+    + {static} build_classifier(backbone, in_channels, num_classes, feature_dim) : BaseClassifier
+}
+
+' ──────────────── BASELINES ────────────────
+class DeviceAgnosticDALA {
+    - m_list : Tensor
+    + forward(logits, target) : Tensor (scalar loss)
+}
+
+class ContrastiveAlignmentLoss {
+    - temperature : float
+    + forward(features, labels) : Tensor (scalar loss)
+}
+
+' ──────────────── FEDERATED CLIENT ────────────────
+class HospitalClient {
+    + client_id : int
+    + dataset : IPFChestCTDataset
+    + class_counts : list[int]
+    + total_samples : int
+    + rare_samples : int
+    - dataloader : DataLoader
+    - ce_criterion : CrossEntropyLoss
+    + train_classifier_standard(model, global_model, mu_prox) : (dict, float)
+    + train_classifier_fediic(model, k1) : (dict, float)
+    + train_classifier_with_replay(model, generator) : (dict, float)
+    + train_generator_locally(generator, global_classifier, steps) : (dict, float)
+}
+
+' ──────────────── FEDERATED SERVER ────────────────
+class FederatedServer {
+    + clients : list[HospitalClient]
+    + test_dataset : IPFChestCTDataset
+    + global_classifier : BaseClassifier
+    + global_generator : ConditionalFeatureGenerator
+    - client_weights : list[float]
+    + aggregate_weights(client_weights_list) : dict
+    + evaluate_global() : dict
+    + train_round_fedavg() : float
+    + train_round_fedprox() : float
+    + train_round_fediic() : float
+    + train_round_fedgen_rare() : float
+}
+
+' ──────────────── METRICS & VISUALIZATION ────────────────
+class MetricsEngine <<utility>> {
+    + {static} evaluate_classifier(model, dataloader, device, rare_class_idx, num_classes) : dict
+}
+
+class VisualizationEngine <<utility>> {
+    + {static} plot_benchmark_comparison(results_dict, output_path)
+    + {static} plot_client_distribution(clients, class_names, output_path)
+    + {static} plot_confusion_matrices(results_dict, class_names, output_path)
+}
+
+' ──────────────── RELATIONSHIPS ────────────────
+BaseClassifier <|-- ConvNet
+BaseClassifier <|-- ResNetClassifier
+BuildClassifier ..> ConvNet : creates
+BuildClassifier ..> ResNetClassifier : creates
+
+IPFChestCTDataset <.. DataPartitioner : creates
+HospitalClient --> IPFChestCTDataset : uses
+HospitalClient --> Config : configured by
+HospitalClient --> ConditionalFeatureGenerator : queries for replay
+HospitalClient --> BaseClassifier : trains locally
+HospitalClient --> DeviceAgnosticDALA : FedIIC baseline
+HospitalClient --> ContrastiveAlignmentLoss : FedIIC baseline
+
+FederatedServer --> HospitalClient : orchestrates
+FederatedServer --> BaseClassifier : maintains global model
+FederatedServer --> ConditionalFeatureGenerator : maintains global generator
+FederatedServer --> Config : configured by
+FederatedServer --> MetricsEngine : evaluates
+MetricsEngine ..> VisualizationEngine : passes results
+
+@enduml
