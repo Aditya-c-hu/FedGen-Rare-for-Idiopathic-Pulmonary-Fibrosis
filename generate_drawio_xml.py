@@ -2,7 +2,8 @@
 Generate native Draw.io (.drawio) XML diagram files
 for seamless drag-and-drop opening in Draw.io / diagrams.net.
 Fixes geometry parsing (as="geometry"), text wrapping (html=1),
-and provides spacious, beautifully aligned component layouts.
+strictly prevents ID 0/1 collisions, and provides spacious,
+beautifully aligned component layouts.
 """
 import os
 import xml.etree.ElementTree as ET
@@ -12,6 +13,7 @@ def create_drawio_xml(diagram_name, elements, width=1800, height=1200):
     Creates a strictly valid, spacious mxGraphModel XML document for Draw.io.
     Every mxGeometry MUST have as="geometry".
     Every vertex MUST have html=1 and whiteSpace=wrap.
+    Guarantees no element uses reserved IDs '0' or '1'.
     """
     mxfile = ET.Element("mxfile", host="app.diagrams.net", version="21.0.0")
     diagram = ET.SubElement(mxfile, "diagram", id="diag1", name=diagram_name)
@@ -28,7 +30,11 @@ def create_drawio_xml(diagram_name, elements, width=1800, height=1200):
     ET.SubElement(root, "mxCell", id="1", parent="0")
 
     for el in elements:
-        cell = ET.SubElement(root, "mxCell", id=str(el["id"]))
+        cell_id = str(el["id"])
+        if cell_id in ["0", "1"]:
+            raise ValueError(f"Diagram '{diagram_name}' element cannot use reserved ID '{cell_id}'!")
+
+        cell = ET.SubElement(root, "mxCell", id=cell_id)
         cell.set("parent", str(el.get("parent", "1")))
 
         if el.get("edge"):
@@ -40,6 +46,11 @@ def create_drawio_xml(diagram_name, elements, width=1800, height=1200):
                 cell.set("value", el["value"])
             geo = ET.SubElement(cell, "mxGeometry", relative="1")
             geo.set("as", "geometry")
+            if "points" in el:
+                arr = ET.SubElement(geo, "Array")
+                arr.set("as", "points")
+                for px, py in el["points"]:
+                    ET.SubElement(arr, "mxPoint", x=str(px), y=str(py))
         else:
             cell.set("vertex", "1")
             cell.set("value", el["value"])
@@ -365,170 +376,209 @@ def generate_all_drawio():
     # ─────────────────────────────────────────────────────────────
     # 3. SEQUENCE DIAGRAM (docs/uml/03_sequence_diagram.drawio)
     # ─────────────────────────────────────────────────────────────
+    def ll_style(fill_color, stroke_color):
+        return f"shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fillColor={fill_color};strokeColor={stroke_color};fontColor=#0A2540;fontStyle=1;fontSize=12;"
+
     seq_elements = [
-        # Lifeline Headers (Top row, spacious & distinct)
-        {"id": 1, "value": "<b>Federated Server Coordinator</b>", "style": "rounded=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;fontStyle=1;", "x": 100, "y": 40, "w": 220, "h": 50},
-        {"id": 2, "value": "<b>Global Model Store (θ, ψ)</b>", "style": "rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;fontStyle=1;", "x": 420, "y": 40, "w": 220, "h": 50},
-        {"id": 3, "value": "<b>Hospital 1 (Tertiary - High IPF)</b>", "style": "rounded=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;fontStyle=1;", "x": 740, "y": 40, "w": 240, "h": 50},
-        {"id": 4, "value": "<b>Hospital 2 (Community - 0 IPF)</b>", "style": "rounded=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#0A2540;fontSize=12;fontStyle=1;", "x": 1080, "y": 40, "w": 240, "h": 50},
-        {"id": 5, "value": "<b>Global Test Evaluator</b>", "style": "rounded=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;fontStyle=1;", "x": 1400, "y": 40, "w": 220, "h": 50},
+        # Native UML Lifelines (IDs 10, 20, 30, 40, 50 - strictly no 0 or 1!)
+        {"id": 10, "value": "<b>Federated Server Coordinator</b>",
+         "style": ll_style("#DAE8FC", "#6C8EBF"), "x": 80, "y": 50, "w": 220, "h": 980},
 
-        # Lifeline vertical rails
-        {"id": 11, "value": "", "style": "line;strokeWidth=2;dashed=1;direction=south;strokeColor=#B0B5C0;", "x": 205, "y": 90, "w": 10, "h": 1000},
-        {"id": 12, "value": "", "style": "line;strokeWidth=2;dashed=1;direction=south;strokeColor=#B0B5C0;", "x": 525, "y": 90, "w": 10, "h": 1000},
-        {"id": 13, "value": "", "style": "line;strokeWidth=2;dashed=1;direction=south;strokeColor=#B0B5C0;", "x": 855, "y": 90, "w": 10, "h": 1000},
-        {"id": 14, "value": "", "style": "line;strokeWidth=2;dashed=1;direction=south;strokeColor=#B0B5C0;", "x": 1195, "y": 90, "w": 10, "h": 1000},
-        {"id": 15, "value": "", "style": "line;strokeWidth=2;dashed=1;direction=south;strokeColor=#B0B5C0;", "x": 1505, "y": 90, "w": 10, "h": 1000},
+        {"id": 20, "value": "<b>Global Model Store (θ, ψ)</b>",
+         "style": ll_style("#D5E8D4", "#82B366"), "x": 380, "y": 50, "w": 220, "h": 980},
 
-        # Phase 1 Banner: STAGE 1 — Federated Generator Distillation
-        {"id": 20, "value": "<b>STAGE 1: Federated Generator Distillation (Learning the Latent Space)</b>",
-         "style": "shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=10;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;fontStyle=1;",
-         "x": 80, "y": 120, "w": 460, "h": 35},
+        {"id": 30, "value": "<b>Hospital 1 (High IPF Center)</b>",
+         "style": ll_style("#FFE6CC", "#D79B00"), "x": 680, "y": 50, "w": 220, "h": 980},
 
-        {"id": 21, "edge": True, "source": 1, "target": 3, "value": "1. Distribute Global Parameters (θ_glob, ψ_glob)",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;exitY=0.15;entryY=0.15;"},
-        {"id": 22, "edge": True, "source": 1, "target": 4, "value": "1. Distribute Global Parameters (θ_glob, ψ_glob)",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;exitY=0.20;entryY=0.20;"},
+        {"id": 40, "value": "<b>Hospital 2 (0 IPF Cases)</b>",
+         "style": ll_style("#F8CECC", "#B85450"), "x": 980, "y": 50, "w": 220, "h": 980},
 
-        {"id": 23, "value": "<b>Local G_ψ Distillation</b><br>Loss = L_CE + λ_fm L_FM - λ_div L_DIV<br>Anchored to real clinic IPF centroids",
-         "style": "rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=10;align=center;",
-         "x": 760, "y": 240, "w": 220, "h": 55},
+        {"id": 50, "value": "<b>Global Test Evaluator</b>",
+         "style": ll_style("#E1D5E7", "#9673A6"), "x": 1280, "y": 50, "w": 220, "h": 980},
 
-        {"id": 24, "value": "<b>Zero-Patient Distillation</b><br>Uses broadcast global class prototypes<br>No division-by-zero crashes",
-         "style": "rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=10;align=center;",
-         "x": 1090, "y": 305, "w": 220, "h": 55},
+        # Stage 1 Banner
+        {"id": 100, "value": "<b>STAGE 1: Federated Generator Distillation (Latent Representation Learning)</b>",
+         "style": "rounded=1;fillColor=#FFF8E1;strokeColor=#F59E0B;strokeWidth=1.5;fontColor=#B45309;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
+         "x": 80, "y": 125, "w": 1420, "h": 36},
 
-        {"id": 25, "edge": True, "source": 3, "target": 1, "value": "Return local generator delta Δψ_1",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#27AE60;strokeWidth=2;dashed=1;exitY=0.38;entryY=0.38;"},
-        {"id": 26, "edge": True, "source": 4, "target": 1, "value": "Return local generator delta Δψ_2",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#27AE60;strokeWidth=2;dashed=1;exitY=0.43;entryY=0.43;"},
-        {"id": 27, "edge": True, "source": 1, "target": 2, "value": "Aggregate: ψ_glob = Σ (n_k/N) ψ_k",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D79B00;strokeWidth=2;exitY=0.48;entryY=0.48;"},
+        # Stage 1 Messages
+        {"id": 111, "edge": True, "source": 10, "target": 30, "value": "1. Broadcast Global Parameters (θ_glob, ψ_glob)",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
+         "points": [(190, 180), (790, 180)]},
 
-        # Phase 2 Banner: STAGE 2 — Generative Replay Classifier Update
-        {"id": 30, "value": "<b>STAGE 2: Generative Replay Classifier Update (Synthesizing Rare Disease Signals)</b>",
-         "style": "shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingLeft=10;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;fontStyle=1;",
-         "x": 80, "y": 550, "w": 520, "h": 35},
+        {"id": 112, "edge": True, "source": 10, "target": 40, "value": "1. Broadcast Global Parameters (θ_glob, ψ_glob)",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
+         "points": [(190, 225), (1090, 225)]},
 
-        {"id": 31, "edge": True, "source": 1, "target": 3, "value": "2. Distribute Aggregated ψ_glob",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;exitY=0.55;entryY=0.55;"},
-        {"id": 32, "edge": True, "source": 1, "target": 4, "value": "2. Distribute Aggregated ψ_glob",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;exitY=0.60;entryY=0.60;"},
+        {"id": 113, "edge": True, "source": 30, "target": 30, "value": "Train G_ψ locally (Anchored to real IPF centroids via L_FM)",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(790, 270), (850, 270), (850, 310), (790, 310)]},
 
-        {"id": 33, "value": "<b>Dynamic Latent Replay</b><br>Sample f̂_IPF ~ G_ψ(z, y=IPF)<br>Replenish rare cases in local mini-batch",
-         "style": "rounded=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=10;align=center;",
-         "x": 1090, "y": 680, "w": 230, "h": 55},
+        {"id": 114, "edge": True, "source": 40, "target": 40, "value": "Zero-Patient Distillation (Guided by global class prototypes)",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(1090, 330), (1150, 330), (1150, 370), (1090, 370)]},
 
-        {"id": 34, "value": "<b>Classifier Training on Replay</b><br>L_clf = CrossEntropy(f_comb, y_comb)<br>Balanced diagnostic decision boundary",
-         "style": "rounded=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=10;align=center;",
-         "x": 1090, "y": 745, "w": 230, "h": 55},
+        {"id": 115, "edge": True, "source": 30, "target": 10, "value": "Upload local generator delta Δψ_1",
+         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(790, 395), (190, 395)]},
 
-        {"id": 35, "edge": True, "source": 3, "target": 1, "value": "Return local classifier delta Δθ_1",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#27AE60;strokeWidth=2;dashed=1;exitY=0.76;entryY=0.76;"},
-        {"id": 36, "edge": True, "source": 4, "target": 1, "value": "Return local classifier delta Δθ_2",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#27AE60;strokeWidth=2;dashed=1;exitY=0.81;entryY=0.81;"},
-        {"id": 37, "edge": True, "source": 1, "target": 2, "value": "Aggregate: θ_glob = Σ (n_k/N) θ_k",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#D79B00;strokeWidth=2;exitY=0.86;entryY=0.86;"},
+        {"id": 116, "edge": True, "source": 40, "target": 10, "value": "Upload local generator delta Δψ_2",
+         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(1090, 440), (190, 440)]},
 
-        # Phase 3: Global Multi-Center Evaluation
-        {"id": 40, "edge": True, "source": 1, "target": 5, "value": "evaluate_global(θ_glob on held-out multi-center CT)",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#9673A6;strokeWidth=2;exitY=0.92;entryY=0.92;"},
-        {"id": 41, "edge": True, "source": 5, "target": 1, "value": "Return Clinical Metrics (BACC, Recall, Macro-F1, AUROC)",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#9673A6;strokeWidth=2;dashed=1;exitY=0.97;entryY=0.97;"}
+        {"id": 117, "edge": True, "source": 10, "target": 20, "value": "Aggregate: ψ_glob = Σ (n_k/N) ψ_k",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
+         "points": [(190, 485), (490, 485)]},
+
+        # Stage 2 Banner
+        {"id": 200, "value": "<b>STAGE 2: Generative Replay Classifier Update (Synthesizing Rare Disease Signals)</b>",
+         "style": "rounded=1;fillColor=#ECFDF5;strokeColor=#10B981;strokeWidth=1.5;fontColor=#047857;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
+         "x": 80, "y": 525, "w": 1420, "h": 36},
+
+        # Stage 2 Messages
+        {"id": 211, "edge": True, "source": 10, "target": 30, "value": "2. Broadcast Synchronized Generator ψ_glob",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
+         "points": [(190, 580), (790, 580)]},
+
+        {"id": 212, "edge": True, "source": 10, "target": 40, "value": "2. Broadcast Synchronized Generator ψ_glob",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
+         "points": [(190, 625), (1090, 625)]},
+
+        {"id": 213, "edge": True, "source": 40, "target": 40, "value": "Dynamic Latent Replay: Sample f̂_IPF ~ G_ψ to replenish rare cases",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
+         "points": [(1090, 670), (1150, 670), (1150, 710), (1090, 710)]},
+
+        {"id": 214, "edge": True, "source": 40, "target": 40, "value": "Train local classifier F_θ on [f_real ‖ f̂_IPF]",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
+         "points": [(1090, 730), (1150, 730), (1150, 770), (1090, 770)]},
+
+        {"id": 215, "edge": True, "source": 30, "target": 10, "value": "Upload local classifier delta Δθ_1",
+         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(790, 790), (190, 790)]},
+
+        {"id": 216, "edge": True, "source": 40, "target": 10, "value": "Upload local classifier delta Δθ_2",
+         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
+         "points": [(1090, 830), (190, 830)]},
+
+        {"id": 217, "edge": True, "source": 10, "target": 20, "value": "Aggregate: θ_glob = Σ (n_k/N) θ_k",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
+         "points": [(190, 855), (490, 855)]},
+
+        # Global Evaluation Banner
+        {"id": 300, "value": "<b>GLOBAL EVALUATION: Multi-Center Generalization Benchmarking</b>",
+         "style": "rounded=1;fillColor=#FAF5FF;strokeColor=#A855F7;strokeWidth=1.5;fontColor=#7E22CE;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
+         "x": 80, "y": 880, "w": 1420, "h": 36},
+
+        # Evaluation Messages
+        {"id": 311, "edge": True, "source": 10, "target": 50, "value": "evaluate_global(F_θ_glob on held-out multi-center CT test set)",
+         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#7E22CE;strokeWidth=2;",
+         "points": [(190, 935), (1390, 935)]},
+
+        {"id": 312, "edge": True, "source": 50, "target": 10, "value": "Return Clinical Metrics (BACC, Recall, Macro-F1, AUROC)",
+         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#7E22CE;strokeWidth=2;",
+         "points": [(1390, 985), (190, 985)]}
     ]
     with open(os.path.join(out_dir, "03_sequence_diagram.drawio"), "wb") as f:
-        f.write(create_drawio_xml("Sequence Diagram", seq_elements, 1750, 1200))
+        f.write(create_drawio_xml("Sequence Diagram", seq_elements, 1600, 1100))
 
     # ─────────────────────────────────────────────────────────────
     # 4. USE CASE DIAGRAM (docs/uml/04_usecase_diagram.drawio)
     # ─────────────────────────────────────────────────────────────
     usecase_elements = [
-        # Actors
-        {"id": 1, "value": "<b>Hospital Radiologist / Clinician</b>", "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;", "x": 70, "y": 180, "w": 45, "h": 90},
-        {"id": 2, "value": "<b>Hospital Node Administrator</b>", "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;", "x": 70, "y": 500, "w": 45, "h": 90},
-        {"id": 3, "value": "<b>Server Coordinator / Researcher</b>", "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;", "x": 1540, "y": 340, "w": 45, "h": 90},
+        # Actors (IDs 501, 502, 503 - strictly no 0 or 1!)
+        {"id": 501, "value": "<b>Hospital Radiologist / Clinician</b>",
+         "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;html=1;",
+         "x": 70, "y": 180, "w": 45, "h": 90},
+
+        {"id": 502, "value": "<b>Hospital Node Administrator</b>",
+         "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;html=1;",
+         "x": 70, "y": 500, "w": 45, "h": 90},
+
+        {"id": 503, "value": "<b>Server Coordinator / Researcher</b>",
+         "style": "shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#0A2540;fontSize=11;html=1;",
+         "x": 1540, "y": 340, "w": 45, "h": 90},
 
         # System Boundary Box
-        {"id": 10, "value": "<b>FedGen-Rare Platform System Boundary</b>",
-         "style": "rounded=1;fillColor=#FAFAFA;strokeColor=#1A5FB4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=20;spacingTop=12;fontColor=#0A2540;fontSize=14;fontStyle=1;",
+        {"id": 510, "value": "<b>FedGen-Rare Platform System Boundary</b>",
+         "style": "rounded=1;fillColor=#FAFAFA;strokeColor=#1A5FB4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=20;spacingTop=12;fontColor=#0A2540;fontSize=14;fontStyle=1;html=1;whiteSpace=wrap;",
          "x": 220, "y": 40, "w": 1260, "h": 820},
 
         # Column 1: Hospital Edge Operations (x = 280)
-        {"id": 11, "value": "Acquire &amp; Preprocess<br>Local DICOM HRCT Scans",
-         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 611, "value": "Acquire &amp; Preprocess<br>Local DICOM HRCT Scans",
+         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 100, "w": 260, "h": 70},
 
-        {"id": 12, "value": "Monitor Local Class<br>Imbalance &amp; Rarity Deficit",
-         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 612, "value": "Monitor Local Class<br>Imbalance &amp; Rarity Deficit",
+         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 210, "w": 260, "h": 70},
 
-        {"id": 13, "value": "Synthesize Latent IPF<br>Features via G_ψ Replay",
-         "style": "ellipse;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 613, "value": "Synthesize Latent IPF<br>Features via G_ψ Replay",
+         "style": "ellipse;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 320, "w": 260, "h": 70},
 
-        {"id": 14, "value": "Train Local Classifier with<br>Generative Feature Replay",
-         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 614, "value": "Train Local Classifier with<br>Generative Feature Replay",
+         "style": "ellipse;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 430, "w": 260, "h": 70},
 
-        {"id": 15, "value": "Verify Zero Raw Image Leakage<br>(Privacy Audit &amp; Firewall Check)",
-         "style": "ellipse;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 615, "value": "Verify Zero Raw Image Leakage<br>(Privacy Audit &amp; Firewall Check)",
+         "style": "ellipse;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 540, "w": 260, "h": 70},
 
-        {"id": 16, "value": "Distill Latent Generator<br>on Local Representations",
-         "style": "ellipse;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 616, "value": "Distill Latent Generator<br>on Local Representations",
+         "style": "ellipse;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 280, "y": 650, "w": 260, "h": 70},
 
         # Column 2: Federated Consortium Coordination (x = 680)
-        {"id": 21, "value": "Register Hospital Node<br>in Federated Consortium",
-         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 621, "value": "Register Hospital Node<br>in Federated Consortium",
+         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 680, "y": 150, "w": 280, "h": 70},
 
-        {"id": 22, "value": "Distribute Global Model<br>Parameters (θ_glob, ψ_glob)",
-         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 622, "value": "Distribute Global Model<br>Parameters (θ_glob, ψ_glob)",
+         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 680, "y": 290, "w": 280, "h": 70},
 
-        {"id": 23, "value": "Perform Weighted Parameter<br>Aggregation (FedAvg)",
-         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 623, "value": "Perform Weighted Parameter<br>Aggregation (FedAvg)",
+         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 680, "y": 430, "w": 280, "h": 70},
 
-        {"id": 24, "value": "Track Round Convergence &amp;<br>Loss Synchronization",
-         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 624, "value": "Track Round Convergence &amp;<br>Loss Synchronization",
+         "style": "ellipse;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 680, "y": 570, "w": 280, "h": 70},
 
         # Column 3: Research, Testing & Clinical Evaluation (x = 1080)
-        {"id": 31, "value": "Execute 4-Way Comparative<br>Benchmark (FedAvg/Prox/IIC/Gen)",
-         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 631, "value": "Execute 4-Way Comparative<br>Benchmark (FedAvg/Prox/IIC/Gen)",
+         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 1080, "y": 150, "w": 280, "h": 70},
 
-        {"id": 32, "value": "Run Automated Unit Tests<br>(pytest 9.1 Test Suite)",
-         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 632, "value": "Run Automated Unit Tests<br>(pytest 9.1 Test Suite)",
+         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 1080, "y": 290, "w": 280, "h": 70},
 
-        {"id": 33, "value": "Compute Clinical Metrics<br>(BACC, Recall, F1, AUROC)",
-         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 633, "value": "Compute Clinical Metrics<br>(BACC, Recall, F1, AUROC)",
+         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 1080, "y": 430, "w": 280, "h": 70},
 
-        {"id": 34, "value": "Export LaTeX Reports &amp;<br>Statistical Result Tables",
-         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;",
+        {"id": 634, "value": "Export LaTeX Reports &amp;<br>Statistical Result Tables",
+         "style": "ellipse;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;align=center;html=1;whiteSpace=wrap;",
          "x": 1080, "y": 570, "w": 280, "h": 70},
 
-        # Actor Edges (Clean connections without crossing)
-        {"id": 101, "edge": True, "source": 1, "target": 11, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 102, "edge": True, "source": 1, "target": 12, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 103, "edge": True, "source": 1, "target": 13, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 104, "edge": True, "source": 1, "target": 14, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        # Actor Edges
+        {"id": 701, "edge": True, "source": 501, "target": 611, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 702, "edge": True, "source": 501, "target": 612, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 703, "edge": True, "source": 501, "target": 613, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 704, "edge": True, "source": 501, "target": 614, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
 
-        {"id": 105, "edge": True, "source": 2, "target": 15, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 106, "edge": True, "source": 2, "target": 16, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 107, "edge": True, "source": 2, "target": 21, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 705, "edge": True, "source": 502, "target": 615, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 706, "edge": True, "source": 502, "target": 616, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 707, "edge": True, "source": 502, "target": 621, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
 
-        {"id": 108, "edge": True, "source": 3, "target": 22, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 109, "edge": True, "source": 3, "target": 23, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 110, "edge": True, "source": 3, "target": 24, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 111, "edge": True, "source": 3, "target": 31, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 112, "edge": True, "source": 3, "target": 32, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 113, "edge": True, "source": 3, "target": 33, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
-        {"id": 114, "edge": True, "source": 3, "target": 34, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"}
+        {"id": 708, "edge": True, "source": 503, "target": 622, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 709, "edge": True, "source": 503, "target": 623, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 710, "edge": True, "source": 503, "target": 624, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 711, "edge": True, "source": 503, "target": 631, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 712, "edge": True, "source": 503, "target": 632, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 713, "edge": True, "source": 503, "target": 633, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 714, "edge": True, "source": 503, "target": 634, "value": "", "style": "strokeColor=#0A2540;strokeWidth=1.5;"}
     ]
     with open(os.path.join(out_dir, "04_usecase_diagram.drawio"), "wb") as f:
         f.write(create_drawio_xml("Use Case Diagram", usecase_elements, 1750, 950))
