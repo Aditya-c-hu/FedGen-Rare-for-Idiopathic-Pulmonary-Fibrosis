@@ -151,3 +151,4 @@ def render_system_architecture(output_path="docs/uml/system_architecture_diagram
 
 if __name__ == "__main__":
     render_system_architecture()
+
