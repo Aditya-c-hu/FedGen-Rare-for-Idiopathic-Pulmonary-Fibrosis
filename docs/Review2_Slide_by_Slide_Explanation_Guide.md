@@ -639,3 +639,4 @@ To assist the team during oral defense and grading evaluation, the following mat
 
 ---
 *End of Slide-by-Slide Explanation & Oral Defense Guide — Team 48, KLE Technological University.*
+
