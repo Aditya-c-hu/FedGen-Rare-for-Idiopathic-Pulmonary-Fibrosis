@@ -193,64 +193,174 @@ def generate_all_drawio():
     # ─────────────────────────────────────────────────────────────
     # 2. CLASS DIAGRAM (docs/uml/02_class_diagram.drawio)
     # ─────────────────────────────────────────────────────────────
+    def build_uml_class(class_name, header_bg, border_color, attributes, methods, is_abstract=False):
+        header = f'<div style="background-color:{header_bg};padding:6px 4px;text-align:center;font-weight:bold;border-bottom:1.5px solid {border_color};font-size:12px;color:#0A2540;">'
+        if is_abstract:
+            header += '<span style="font-size:10px;font-style:italic;font-weight:normal;">&laquo;abstract&raquo;</span><br/>'
+        header += f'{class_name}</div>'
+
+        attrs = ''
+        if attributes:
+            attrs = '<div style="padding:6px 8px;font-size:11px;color:#0A2540;line-height:1.35;text-align:left;">' + '<br/>'.join(attributes) + '</div>'
+
+        meths = ''
+        if methods:
+            meths = f'<div style="border-top:1px solid #CBD5E1;padding:6px 8px;font-size:11px;color:#0A2540;line-height:1.35;text-align:left;">' + '<br/>'.join(methods) + '</div>'
+
+        return header + attrs + meths
+
+    def cls_style(border_color):
+        return f"rounded=1;arcSize=4;fillColor=#FFFFFF;strokeColor={border_color};strokeWidth=1.5;html=1;whiteSpace=wrap;overflow=hidden;align=left;verticalAlign=top;spacing=0;"
+
     class_elements = [
-        # Top Row: Config, Dataset, Generator, Metrics
-        {"id": 10, "value": "<b>Config</b><br>+ disease_target: str = 'IPF'<br>+ num_classes: int = 3<br>+ rare_class_idx: int = 0<br>+ num_clients: int = 5<br>+ non_iid_alpha: float = 0.2<br>+ global_rounds: int = 12<br>+ feature_dim: int = 128<br>+ noise_dim: int = 64<br>+ to_dict(): dict",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;",
-         "x": 60, "y": 50, "w": 320, "h": 260},
+        # Top Row: Config, Dataset, Generator, Metrics (Compact, well-spaced)
+        {"id": 10,
+         "value": build_uml_class(
+             "Config", "#DAE8FC", "#6C8EBF",
+             ["+ disease_target: str = 'IPF'",
+              "+ num_classes: int = 3",
+              "+ rare_class_idx: int = 0",
+              "+ num_clients: int = 5",
+              "+ non_iid_alpha: float = 0.2",
+              "+ global_rounds: int = 12",
+              "+ feature_dim: int = 128",
+              "+ noise_dim: int = 64"],
+             ["+ to_dict(): dict"]
+         ),
+         "style": cls_style("#6C8EBF"),
+         "x": 50, "y": 50, "w": 220, "h": 195},
 
-        {"id": 20, "value": "<b>IPFChestCTDataset</b><br>+ images: Tensor[N, 1, 64, 64]<br>+ labels: Tensor[N]<br>+ scanner_ids: Tensor[N]<br>+ class_counts: list[int]<br>+ __len__(): int<br>+ __getitem__(idx: int): tuple[Tensor, int]<br>+ get_class_counts(): list[int]<br>+ get_scanner_distribution(): dict",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#0A2540;fontSize=12;",
-         "x": 440, "y": 50, "w": 360, "h": 260},
+        {"id": 20,
+         "value": build_uml_class(
+             "IPFChestCTDataset", "#DAE8FC", "#6C8EBF",
+             ["+ images: Tensor[N, 1, 64, 64]",
+              "+ labels: Tensor[N]",
+              "+ scanner_ids: Tensor[N]",
+              "+ class_counts: list[int]"],
+             ["+ __len__(): int",
+              "+ __getitem__(idx: int): tuple",
+              "+ get_class_counts(): list[int]"]
+         ),
+         "style": cls_style("#6C8EBF"),
+         "x": 310, "y": 50, "w": 260, "h": 165},
 
-        {"id": 30, "value": "<b>ConditionalFeatureGenerator</b><br>- label_embed: nn.Embedding(3, 64)<br>- mlp_layers: nn.Sequential<br>+ forward(noise: Tensor, labels: Tensor): Tensor<br>+ sample(labels: Tensor, device: str): Tensor<br>+ compute_diversity_loss(z1, z2): Tensor",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#0A2540;fontSize=12;",
-         "x": 860, "y": 50, "w": 380, "h": 260},
+        {"id": 30,
+         "value": build_uml_class(
+             "ConditionalFeatureGenerator", "#D5E8D4", "#82B366",
+             ["- label_embed: nn.Embedding(3, 64)",
+              "- mlp_layers: nn.Sequential"],
+             ["+ forward(noise, labels): Tensor",
+              "+ sample(labels, device): Tensor",
+              "+ compute_diversity_loss(): Tensor"]
+         ),
+         "style": cls_style("#82B366"),
+         "x": 610, "y": 50, "w": 270, "h": 135},
 
-        {"id": 40, "value": "<b>MetricsEvaluator</b><br>+ compute_all_metrics(y_true, y_pred, y_prob): dict<br>+ balanced_accuracy(y_true, y_pred): float<br>+ rare_class_recall(y_true, y_pred): float<br>+ macro_f1_score(y_true, y_pred): float<br>+ auroc_multiclass(y_true, y_prob): float",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#0A2540;fontSize=12;",
-         "x": 1300, "y": 50, "w": 340, "h": 260},
+        {"id": 40,
+         "value": build_uml_class(
+             "MetricsEvaluator", "#E1D5E7", "#9673A6",
+             ["+ metric_names: list[str]"],
+             ["+ compute_all_metrics(): dict",
+              "+ balanced_accuracy(): float",
+              "+ rare_class_recall(): float",
+              "+ auroc_multiclass(): float"]
+         ),
+         "style": cls_style("#9673A6"),
+         "x": 920, "y": 50, "w": 240, "h": 135},
 
         # Middle Row: Abstract Model and Backbones
-        {"id": 50, "value": "<b>&laquo;abstract&raquo;<br>BaseClassifier</b><br>+ extract_features(x: Tensor): Tensor[B, 128]<br>+ forward_head(feat: Tensor): Tensor[B, 3]<br>+ forward(x: Tensor, return_proj: bool): tuple",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;",
-         "x": 440, "y": 380, "w": 360, "h": 170},
+        {"id": 50,
+         "value": build_uml_class(
+             "BaseClassifier", "#FFF2CC", "#D6B656",
+             [],
+             ["+ extract_features(x): Tensor",
+              "+ forward_head(feat): Tensor",
+              "+ forward(x, project): tuple"],
+             is_abstract=True
+         ),
+         "style": cls_style("#D6B656"),
+         "x": 310, "y": 255, "w": 260, "h": 105},
 
-        {"id": 51, "value": "<b>ConvNet</b><br>- conv_layers: nn.Sequential (4 blocks)<br>- feature_proj: nn.LayerNorm(128)<br>- classifier_head: nn.Linear(128, 3)<br>- projector_head: nn.Sequential (128 -> 64)<br>+ extract_features(x: Tensor): Tensor<br>+ forward_head(feat: Tensor): Tensor",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;",
-         "x": 220, "y": 620, "w": 360, "h": 220},
+        {"id": 51,
+         "value": build_uml_class(
+             "ConvNet", "#FFF2CC", "#D6B656",
+             ["- conv_layers: nn.Sequential",
+              "- feature_proj: nn.LayerNorm",
+              "- fc: nn.Linear(128, 3)",
+              "- projector: nn.Sequential"],
+             ["+ extract_features(x): Tensor",
+              "+ forward_head(feat): Tensor"]
+         ),
+         "style": cls_style("#D6B656"),
+         "x": 150, "y": 400, "w": 240, "h": 150},
 
-        {"id": 52, "value": "<b>ResNet18Classifier</b><br>- resnet_backbone: torchvision.models.resnet18<br>- custom_fc: nn.Linear(512, 128)<br>- classifier_head: nn.Linear(128, 3)<br>- projector_head: nn.Sequential(128 -> 64)<br>+ extract_features(x: Tensor): Tensor<br>+ forward_head(feat: Tensor): Tensor",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#0A2540;fontSize=12;",
-         "x": 640, "y": 620, "w": 360, "h": 220},
+        {"id": 52,
+         "value": build_uml_class(
+             "ResNet18Classifier", "#FFF2CC", "#D6B656",
+             ["- backbone: resnet18",
+              "- custom_fc: nn.Linear(512, 128)",
+              "- fc: nn.Linear(128, 3)",
+              "- projector: nn.Sequential"],
+             ["+ extract_features(x): Tensor",
+              "+ forward_head(feat): Tensor"]
+         ),
+         "style": cls_style("#D6B656"),
+         "x": 430, "y": 400, "w": 250, "h": 150},
 
-        # Federated Edge & Server Classes
-        {"id": 60, "value": "<b>HospitalClient</b><br>+ client_id: int<br>+ dataset: IPFChestCTDataset<br>+ total_samples: int<br>+ rare_samples: int<br>+ local_classifier: BaseClassifier<br>+ local_generator: ConditionalFeatureGenerator<br>+ train_classifier_standard(): tuple[dict, float]<br>+ train_classifier_fediic(): tuple[dict, float]<br>+ train_classifier_with_replay(): tuple[dict, float]<br>+ train_generator_locally(): tuple[dict, float]<br>+ compute_real_feature_centroids(): dict[int, Tensor]",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#F5F7FA;strokeColor=#1A5FB4;fontColor=#0A2540;fontSize=12;",
-         "x": 1080, "y": 380, "w": 480, "h": 330},
+        # Right Side: Federated Edge & Server Classes
+        {"id": 60,
+         "value": build_uml_class(
+             "HospitalClient", "#F5F7FA", "#1A5FB4",
+             ["+ client_id: int",
+              "+ dataset: IPFChestCTDataset",
+              "+ total_samples: int",
+              "+ rare_samples: int",
+              "+ local_classifier: BaseClassifier",
+              "+ local_generator: CondFeatGen"],
+             ["+ train_classifier_standard(): tuple",
+              "+ train_classifier_fediic(): tuple",
+              "+ train_classifier_with_replay(): tuple",
+              "+ train_generator_locally(): tuple",
+              "+ compute_real_centroids(): dict"]
+         ),
+         "style": cls_style("#1A5FB4"),
+         "x": 750, "y": 220, "w": 330, "h": 230},
 
-        {"id": 70, "value": "<b>FederatedServer</b><br>+ clients: list[HospitalClient]<br>+ test_dataset: IPFChestCTDataset<br>+ global_classifier: BaseClassifier<br>+ global_generator: ConditionalFeatureGenerator<br>+ aggregate_weights(weights_list, sample_weights): dict<br>+ train_round_fedavg(): float<br>+ train_round_fedprox(mu: float): float<br>+ train_round_fediic(): float<br>+ train_round_fedgen_rare(): float<br>+ evaluate_global(classifier): dict[str, float]",
-         "style": "swimlane;fontStyle=0;align=center;verticalAlign=top;startSize=28;fillColor=#EBF3FB;strokeColor=#1A5FB4;fontColor=#0A2540;fontSize=12;",
-         "x": 1080, "y": 780, "w": 480, "h": 320},
+        {"id": 70,
+         "value": build_uml_class(
+             "FederatedServer", "#EBF3FB", "#1A5FB4",
+             ["+ clients: list[HospitalClient]",
+              "+ test_dataset: IPFChestCTDataset",
+              "+ global_classifier: BaseClassifier",
+              "+ global_generator: CondFeatGen"],
+             ["+ aggregate_weights(weights): dict",
+              "+ train_round_fedavg(): float",
+              "+ train_round_fedprox(mu): float",
+              "+ train_round_fediic(): float",
+              "+ train_round_fedgen_rare(): float",
+              "+ evaluate_global(classifier): dict"]
+         ),
+         "style": cls_style("#1A5FB4"),
+         "x": 750, "y": 485, "w": 330, "h": 225},
 
         # Associations & Relationships
         {"id": 81, "edge": True, "source": 51, "target": 50, "value": "inherits",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#0A2540;strokeWidth=2;"},
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#0A2540;strokeWidth=1.5;"},
         {"id": 82, "edge": True, "source": 52, "target": 50, "value": "inherits",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#0A2540;strokeWidth=2;"},
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#0A2540;strokeWidth=1.5;"},
         {"id": 83, "edge": True, "source": 60, "target": 20, "value": "holds 1",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=diamond;endFill=1;strokeColor=#0A2540;strokeWidth=2;"},
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=diamond;endFill=1;strokeColor=#0A2540;strokeWidth=1.5;"},
         {"id": 84, "edge": True, "source": 70, "target": 60, "value": "orchestrates 1..K",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=diamond;endFill=1;strokeColor=#0A2540;strokeWidth=2;"},
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=diamond;endFill=1;strokeColor=#0A2540;strokeWidth=1.5;"},
         {"id": 85, "edge": True, "source": 70, "target": 50, "value": "maintains global",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;strokeColor=#0A2540;strokeWidth=2;"},
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;strokeColor=#0A2540;strokeWidth=1.5;"},
         {"id": 86, "edge": True, "source": 70, "target": 30, "value": "maintains global",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;strokeColor=#0A2540;strokeWidth=2;"},
-        {"id": 87, "edge": True, "source": 70, "target": 40, "value": "uses for evaluation",
-         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;dashed=1;strokeColor=#0A2540;strokeWidth=2;"}
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;strokeColor=#0A2540;strokeWidth=1.5;"},
+        {"id": 87, "edge": True, "source": 70, "target": 40, "value": "evaluates with",
+         "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;dashed=1;strokeColor=#0A2540;strokeWidth=1.5;"}
     ]
     with open(os.path.join(out_dir, "02_class_diagram.drawio"), "wb") as f:
-        f.write(create_drawio_xml("Class Diagram", class_elements, 1750, 1200))
+        f.write(create_drawio_xml("Class Diagram", class_elements, 1400, 850))
 
     # ─────────────────────────────────────────────────────────────
     # 3. SEQUENCE DIAGRAM (docs/uml/03_sequence_diagram.drawio)
