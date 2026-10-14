@@ -376,110 +376,94 @@ def generate_all_drawio():
     # ─────────────────────────────────────────────────────────────
     # 3. SEQUENCE DIAGRAM (docs/uml/03_sequence_diagram.drawio)
     # ─────────────────────────────────────────────────────────────
+    y_top = 50
+    h_life = 1050
+
     def ll_style(fill_color, stroke_color):
-        return f"shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fillColor={fill_color};strokeColor={stroke_color};fontColor=#0A2540;fontStyle=1;fontSize=12;"
+        return (
+            f"shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;"
+            f"container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;"
+            f"fillColor={fill_color};strokeColor={stroke_color};fontColor=#0A2540;fontStyle=1;fontSize=12;"
+        )
+
+    def make_msg(eid, src, tgt, val, y, stroke="#1A5FB4", dashed=False, x1=180, x2=790):
+        r = (y - y_top) / h_life
+        style = (
+            f"html=1;verticalAlign=bottom;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;"
+            f"strokeColor={stroke};strokeWidth=2;"
+            f"exitX=0.5;exitY={r:.4f};exitDx=0;exitDy=0;"
+            f"entryX=0.5;entryY={r:.4f};entryDx=0;entryDy=0;"
+        )
+        if dashed:
+            style += "dashed=1;endArrow=open;"
+        else:
+            style += "endArrow=block;"
+        return {"id": eid, "edge": True, "source": src, "target": tgt, "value": val, "style": style, "points": [(x1, y), (x2, y)]}
+
+    def make_loop(eid, src, val, y1, y2, stroke, x_c):
+        r1 = (y1 - y_top) / h_life
+        r2 = (y2 - y_top) / h_life
+        style = (
+            f"html=1;verticalAlign=bottom;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;"
+            f"strokeColor={stroke};strokeWidth=2;endArrow=block;"
+            f"exitX=0.5;exitY={r1:.4f};exitDx=0;exitDy=0;"
+            f"entryX=0.5;entryY={r2:.4f};entryDx=0;entryDy=0;"
+        )
+        return {"id": eid, "edge": True, "source": src, "target": src, "value": val, "style": style, "points": [(x_c, y1), (x_c + 70, y1), (x_c + 70, y2), (x_c, y2)]}
 
     seq_elements = [
-        # Native UML Lifelines (IDs 10, 20, 30, 40, 50 - strictly no 0 or 1!)
+        # Native UML Lifelines (width=220, height=1050, from y=50 to y=1100)
         {"id": 10, "value": "<b>Federated Server Coordinator</b>",
-         "style": ll_style("#DAE8FC", "#6C8EBF"), "x": 80, "y": 50, "w": 220, "h": 980},
+         "style": ll_style("#DAE8FC", "#6C8EBF"), "x": 70, "y": 50, "w": 220, "h": 1050},
 
         {"id": 20, "value": "<b>Global Model Store (θ, ψ)</b>",
-         "style": ll_style("#D5E8D4", "#82B366"), "x": 380, "y": 50, "w": 220, "h": 980},
+         "style": ll_style("#D5E8D4", "#82B366"), "x": 370, "y": 50, "w": 220, "h": 1050},
 
         {"id": 30, "value": "<b>Hospital 1 (High IPF Center)</b>",
-         "style": ll_style("#FFE6CC", "#D79B00"), "x": 680, "y": 50, "w": 220, "h": 980},
+         "style": ll_style("#FFE6CC", "#D79B00"), "x": 680, "y": 50, "w": 220, "h": 1050},
 
         {"id": 40, "value": "<b>Hospital 2 (0 IPF Cases)</b>",
-         "style": ll_style("#F8CECC", "#B85450"), "x": 980, "y": 50, "w": 220, "h": 980},
+         "style": ll_style("#F8CECC", "#B85450"), "x": 990, "y": 50, "w": 220, "h": 1050},
 
         {"id": 50, "value": "<b>Global Test Evaluator</b>",
-         "style": ll_style("#E1D5E7", "#9673A6"), "x": 1280, "y": 50, "w": 220, "h": 980},
+         "style": ll_style("#E1D5E7", "#9673A6"), "x": 1300, "y": 50, "w": 220, "h": 1050},
 
-        # Stage 1 Banner
+        # ── STAGE 1 ZONE (y = 120 to y = 500) ──
         {"id": 100, "value": "<b>STAGE 1: Federated Generator Distillation (Latent Representation Learning)</b>",
          "style": "rounded=1;fillColor=#FFF8E1;strokeColor=#F59E0B;strokeWidth=1.5;fontColor=#B45309;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
-         "x": 80, "y": 125, "w": 1420, "h": 36},
+         "x": 70, "y": 120, "w": 1450, "h": 36},
 
-        # Stage 1 Messages
-        {"id": 111, "edge": True, "source": 10, "target": 30, "value": "1. Broadcast Global Parameters (θ_glob, ψ_glob)",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
-         "points": [(190, 180), (790, 180)]},
+        make_msg(111, 10, 30, "1. Broadcast Global Parameters (θ_glob, ψ_glob)", 175, stroke="#1A5FB4", x1=180, x2=790),
+        make_msg(112, 10, 40, "1. Broadcast Global Parameters (θ_glob, ψ_glob)", 220, stroke="#1A5FB4", x1=180, x2=1100),
+        make_loop(113, 30, "Train G_ψ locally (Anchored to real IPF centroids via L_FM)", 265, 305, stroke="#059669", x_c=790),
+        make_loop(114, 40, "Zero-Patient Distillation (Guided by global class prototypes)", 330, 370, stroke="#059669", x_c=1100),
+        make_msg(115, 30, 10, "Upload local generator delta Δψ_1", 410, stroke="#059669", dashed=True, x1=790, x2=180),
+        make_msg(116, 40, 10, "Upload local generator delta Δψ_2", 450, stroke="#059669", dashed=True, x1=1100, x2=180),
+        make_msg(117, 10, 20, "Aggregate: ψ_glob = Σ (n_k/N) ψ_k", 490, stroke="#D97706", x1=180, x2=480),
 
-        {"id": 112, "edge": True, "source": 10, "target": 40, "value": "1. Broadcast Global Parameters (θ_glob, ψ_glob)",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
-         "points": [(190, 225), (1090, 225)]},
-
-        {"id": 113, "edge": True, "source": 30, "target": 30, "value": "Train G_ψ locally (Anchored to real IPF centroids via L_FM)",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(790, 270), (850, 270), (850, 310), (790, 310)]},
-
-        {"id": 114, "edge": True, "source": 40, "target": 40, "value": "Zero-Patient Distillation (Guided by global class prototypes)",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(1090, 330), (1150, 330), (1150, 370), (1090, 370)]},
-
-        {"id": 115, "edge": True, "source": 30, "target": 10, "value": "Upload local generator delta Δψ_1",
-         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(790, 395), (190, 395)]},
-
-        {"id": 116, "edge": True, "source": 40, "target": 10, "value": "Upload local generator delta Δψ_2",
-         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(1090, 440), (190, 440)]},
-
-        {"id": 117, "edge": True, "source": 10, "target": 20, "value": "Aggregate: ψ_glob = Σ (n_k/N) ψ_k",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
-         "points": [(190, 485), (490, 485)]},
-
-        # Stage 2 Banner
+        # ── STAGE 2 ZONE (y = 530 to y = 885) ──
         {"id": 200, "value": "<b>STAGE 2: Generative Replay Classifier Update (Synthesizing Rare Disease Signals)</b>",
          "style": "rounded=1;fillColor=#ECFDF5;strokeColor=#10B981;strokeWidth=1.5;fontColor=#047857;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
-         "x": 80, "y": 525, "w": 1420, "h": 36},
+         "x": 70, "y": 530, "w": 1450, "h": 36},
 
-        # Stage 2 Messages
-        {"id": 211, "edge": True, "source": 10, "target": 30, "value": "2. Broadcast Synchronized Generator ψ_glob",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
-         "points": [(190, 580), (790, 580)]},
+        make_msg(211, 10, 30, "2. Broadcast Synchronized Generator ψ_glob", 585, stroke="#1A5FB4", x1=180, x2=790),
+        make_msg(212, 10, 40, "2. Broadcast Synchronized Generator ψ_glob", 625, stroke="#1A5FB4", x1=180, x2=1100),
+        make_loop(213, 40, "Dynamic Latent Replay: Sample f̂_IPF ~ G_ψ to replenish rare cases", 665, 705, stroke="#D97706", x_c=1100),
+        make_loop(214, 40, "Train local classifier F_θ on [f_real ‖ f̂_IPF]", 730, 770, stroke="#1A5FB4", x_c=1100),
+        make_msg(215, 30, 10, "Upload local classifier delta Δθ_1", 805, stroke="#059669", dashed=True, x1=790, x2=180),
+        make_msg(216, 40, 10, "Upload local classifier delta Δθ_2", 840, stroke="#059669", dashed=True, x1=1100, x2=180),
+        make_msg(217, 10, 20, "Aggregate: θ_glob = Σ (n_k/N) θ_k", 875, stroke="#D97706", x1=180, x2=480),
 
-        {"id": 212, "edge": True, "source": 10, "target": 40, "value": "2. Broadcast Synchronized Generator ψ_glob",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
-         "points": [(190, 625), (1090, 625)]},
-
-        {"id": 213, "edge": True, "source": 40, "target": 40, "value": "Dynamic Latent Replay: Sample f̂_IPF ~ G_ψ to replenish rare cases",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
-         "points": [(1090, 670), (1150, 670), (1150, 710), (1090, 710)]},
-
-        {"id": 214, "edge": True, "source": 40, "target": 40, "value": "Train local classifier F_θ on [f_real ‖ f̂_IPF]",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#1A5FB4;strokeWidth=2;",
-         "points": [(1090, 730), (1150, 730), (1150, 770), (1090, 770)]},
-
-        {"id": 215, "edge": True, "source": 30, "target": 10, "value": "Upload local classifier delta Δθ_1",
-         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(790, 790), (190, 790)]},
-
-        {"id": 216, "edge": True, "source": 40, "target": 10, "value": "Upload local classifier delta Δθ_2",
-         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#059669;strokeWidth=2;",
-         "points": [(1090, 830), (190, 830)]},
-
-        {"id": 217, "edge": True, "source": 10, "target": 20, "value": "Aggregate: θ_glob = Σ (n_k/N) θ_k",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#D97706;strokeWidth=2;",
-         "points": [(190, 855), (490, 855)]},
-
-        # Global Evaluation Banner
+        # ── GLOBAL EVALUATION ZONE (y = 910 to y = 1050) ──
         {"id": 300, "value": "<b>GLOBAL EVALUATION: Multi-Center Generalization Benchmarking</b>",
          "style": "rounded=1;fillColor=#FAF5FF;strokeColor=#A855F7;strokeWidth=1.5;fontColor=#7E22CE;fontSize=12;fontStyle=1;align=left;spacingLeft=15;html=1;whiteSpace=wrap;",
-         "x": 80, "y": 880, "w": 1420, "h": 36},
+         "x": 70, "y": 910, "w": 1450, "h": 36},
 
-        # Evaluation Messages
-        {"id": 311, "edge": True, "source": 10, "target": 50, "value": "evaluate_global(F_θ_glob on held-out multi-center CT test set)",
-         "style": "html=1;verticalAlign=bottom;endArrow=block;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#7E22CE;strokeWidth=2;",
-         "points": [(190, 935), (1390, 935)]},
-
-        {"id": 312, "edge": True, "source": 50, "target": 10, "value": "Return Clinical Metrics (BACC, Recall, Macro-F1, AUROC)",
-         "style": "html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;strokeColor=#7E22CE;strokeWidth=2;",
-         "points": [(1390, 985), (190, 985)]}
+        make_msg(311, 10, 50, "evaluate_global(F_θ_glob on held-out multi-center CT test set)", 960, stroke="#7E22CE", x1=180, x2=1410),
+        make_msg(312, 50, 10, "Return Clinical Metrics: BACC, IPF Recall, Macro-F1, AUROC", 1010, stroke="#7E22CE", dashed=True, x1=1410, x2=180)
     ]
     with open(os.path.join(out_dir, "03_sequence_diagram.drawio"), "wb") as f:
-        f.write(create_drawio_xml("Sequence Diagram", seq_elements, 1600, 1100))
+        f.write(create_drawio_xml("Sequence Diagram", seq_elements, 1650, 1150))
 
     # ─────────────────────────────────────────────────────────────
     # 4. USE CASE DIAGRAM (docs/uml/04_usecase_diagram.drawio)
