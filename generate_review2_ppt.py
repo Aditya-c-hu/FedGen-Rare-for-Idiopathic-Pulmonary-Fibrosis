@@ -1,29 +1,24 @@
 """
-Script to generate the complete 12-slide SDP Review 2 presentation
-adhering strictly to the official template layout, KLE Tech branding,
-and Review 2 assessment rubrics.
+Script to generate the complete 11-slide SDP Review 2 presentation:
+- Uses official KLE Tech branding and template layout.
+- Slide 5 (Architecture): Features the visual pictorial architecture diagram (no theoretical text bullets).
+- Module Implementation slide is removed.
+- Results slide: Shows ONLY published baseline paper results (FedIIC MICCAI '23) and detailed explanation of why 100% is inaccurate.
+- Total slides: exactly 11 slides (within 10-12 limit).
 """
 import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
 def create_review2_presentation():
-    # Load original template to get master slide styles and logo
     prs = Presentation('SDP Review_final.pptx')
-    blank_layout = prs.slide_layouts[2]  # Blank slide layout
+    blank_layout = prs.slide_layouts[2]
 
-    # Ensure logo image exists
     logo_path = 'kletech_logo.png'
-    if not os.path.exists(logo_path):
-        slide1 = prs.slides[0]
-        for s in slide1.shapes:
-            if s.shape_type == 13:
-                with open(logo_path, 'wb') as f:
-                    f.write(s.image.blob)
-                break
+    arch_img_path = 'docs/uml/system_architecture_diagram.png'
 
     # Palette
     C_NAVY = RGBColor(10, 37, 64)       # #0A2540 Primary Title
@@ -33,8 +28,11 @@ def create_review2_presentation():
     C_LIGHT_BG = RGBColor(245, 247, 250)# Light card fill
     C_ACCENT = RGBColor(192, 57, 43)    # Red accent for rare disease / warnings
     C_GREEN = RGBColor(39, 174, 96)     # Green accent for improvements
+    C_ORANGE = RGBColor(211, 84, 0)     # Orange accent for error gaps
 
-    # Slide 1: Update Cover Slide
+    # ─────────────────────────────────────────────────────────────
+    # SLIDE 1: Title / Cover Slide (In-Place Update)
+    # ─────────────────────────────────────────────────────────────
     slide1 = prs.slides[0]
     for s in slide1.shapes:
         if s.has_text_frame:
@@ -42,17 +40,11 @@ def create_review2_presentation():
             if 'Review 1' in txt:
                 p = s.text_frame.paragraphs[0]
                 p.text = "Senior Design Project (SDP) – Review 2"
-                p.font.name = "Arial"
-                p.font.size = Pt(14)
-                p.font.bold = True
-                p.font.color.rgb = C_BLUE
+                p.font.name = "Arial"; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = C_BLUE
             elif 'Title :' in txt:
                 p = s.text_frame.paragraphs[0]
                 p.text = "Title : Privacy-Preserving Federated Generative Replay for Rare Disease Diagnosis: A Multi-Center Study on Idiopathic Pulmonary Fibrosis (IPF)"
-                p.font.name = "Arial"
-                p.font.size = Pt(13)
-                p.font.bold = True
-                p.font.color.rgb = C_NAVY
+                p.font.name = "Arial"; p.font.size = Pt(13); p.font.bold = True; p.font.color.rgb = C_NAVY
 
     # Clear shapes on slide 2 and slide 3 in-place so we reuse their slide parts cleanly
     slide2 = prs.slides[1]
@@ -63,51 +55,34 @@ def create_review2_presentation():
     for s in list(slide3.shapes):
         slide3.shapes._spTree.remove(s._element)
 
-    # Helper function to add standardized header to slides 2..12
+    # Helper function for standardized header
     def setup_slide_header(slide, title_text, category_tag=""):
-        # Logo at top right
         if os.path.exists(logo_path):
             slide.shapes.add_picture(logo_path, Inches(7.38), Inches(0.06), width=Inches(2.53), height=Inches(0.60))
 
-        # Navy header dividing line
         line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.0), Inches(0.74), Inches(10.0), Inches(0.025))
-        line.fill.solid()
-        line.fill.fore_color.rgb = C_BLUE
-        line.line.color.rgb = C_BLUE
+        line.fill.solid(); line.fill.fore_color.rgb = C_BLUE; line.line.color.rgb = C_BLUE
 
-        # Title text box
         tb = slide.shapes.add_textbox(Inches(0.35), Inches(0.08), Inches(6.9), Inches(0.62))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
+        tf = tb.text_frame; tf.word_wrap = True; tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
         p = tf.paragraphs[0]
         p.text = title_text
-        p.font.name = "Arial"
-        p.font.size = Pt(18)
-        p.font.bold = True
-        p.font.color.rgb = C_NAVY
+        p.font.name = "Arial"; p.font.size = Pt(18); p.font.bold = True; p.font.color.rgb = C_NAVY
 
         if category_tag:
             p2 = tf.add_paragraph()
             p2.text = category_tag
-            p2.font.name = "Arial"
-            p2.font.size = Pt(10)
-            p2.font.bold = True
-            p2.font.color.rgb = C_BLUE
+            p2.font.name = "Arial"; p2.font.size = Pt(9.5); p2.font.bold = True; p2.font.color.rgb = C_BLUE
 
     # ─────────────────────────────────────────────────────────────
     # SLIDE 2: Review 1 Feedback & Research Scope
-    slide2 = prs.slides[1]
+    # ─────────────────────────────────────────────────────────────
     setup_slide_header(slide2, "Review 1 Feedback & Problem Formulation", "ADDRESSING REVIEWER CRITIQUE & RESEARCH JUSTIFICATION")
 
     # Left card: Reviewer Critique
     card1 = slide2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
-    card1.fill.solid()
-    card1.fill.fore_color.rgb = C_LIGHT_BG
-    card1.line.color.rgb = C_BLUE
-    tf1 = card1.text_frame
-    tf1.word_wrap = True
-    tf1.margin_left = tf1.margin_top = tf1.margin_right = tf1.margin_bottom = Inches(0.18)
+    card1.fill.solid(); card1.fill.fore_color.rgb = C_LIGHT_BG; card1.line.color.rgb = C_BLUE
+    tf1 = card1.text_frame; tf1.word_wrap = True; tf1.margin_left = tf1.margin_top = tf1.margin_right = tf1.margin_bottom = Inches(0.18)
 
     p = tf1.paragraphs[0]
     p.text = "1. Reviewer Feedback & Critique"
@@ -129,12 +104,8 @@ def create_review2_presentation():
 
     # Right card: Our Solution & Baseline Selection
     card2 = slide2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
-    card2.fill.solid()
-    card2.fill.fore_color.rgb = C_LIGHT_BG
-    card2.line.color.rgb = C_BLUE
-    tf2 = card2.text_frame
-    tf2.word_wrap = True
-    tf2.margin_left = tf2.margin_top = tf2.margin_right = tf2.margin_bottom = Inches(0.18)
+    card2.fill.solid(); card2.fill.fore_color.rgb = C_LIGHT_BG; card2.line.color.rgb = C_BLUE
+    tf2 = card2.text_frame; tf2.word_wrap = True; tf2.margin_left = tf2.margin_top = tf2.margin_right = tf2.margin_bottom = Inches(0.18)
 
     p = tf2.paragraphs[0]
     p.text = "2. Selected Focus & Scope for Improvement"
@@ -158,13 +129,11 @@ def create_review2_presentation():
 
     # ─────────────────────────────────────────────────────────────
     # SLIDE 3: Target Pathology — Idiopathic Pulmonary Fibrosis (IPF)
-    slide3 = prs.slides[2]
+    # ─────────────────────────────────────────────────────────────
     setup_slide_header(slide3, "Target Pathology — Idiopathic Pulmonary Fibrosis (IPF)", "CLINICAL PROFILE, DIAGNOSTIC DILEMMA & FEDERATED CHALLENGE")
 
     box3 = slide3.shapes.add_textbox(Inches(0.35), Inches(0.88), Inches(9.3), Inches(4.45))
-    tf3 = box3.text_frame
-    tf3.word_wrap = True
-    tf3.margin_left = tf3.margin_top = tf3.margin_right = tf3.margin_bottom = 0
+    tf3 = box3.text_frame; tf3.word_wrap = True; tf3.margin_left = tf3.margin_top = tf3.margin_right = tf3.margin_bottom = 0
 
     sections3 = [
         ("Clinical Severity & Epidemiological Rarity (ORPHA:2032):", C_NAVY, [
@@ -206,8 +175,7 @@ def create_review2_presentation():
     # Left: Functional Requirements
     card4_l = slide4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
     card4_l.fill.solid(); card4_l.fill.fore_color.rgb = C_LIGHT_BG; card4_l.line.color.rgb = C_BLUE
-    tf4_l = card4_l.text_frame
-    tf4_l.word_wrap = True; tf4_l.margin_left = tf4_l.margin_top = tf4_l.margin_right = tf4_l.margin_bottom = Inches(0.18)
+    tf4_l = card4_l.text_frame; tf4_l.word_wrap = True; tf4_l.margin_left = tf4_l.margin_top = tf4_l.margin_right = tf4_l.margin_bottom = Inches(0.18)
 
     p = tf4_l.paragraphs[0]
     p.text = "Functional Requirements (FRs)"
@@ -226,15 +194,12 @@ def create_review2_presentation():
         para.text = f"• {title}: "
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = True; para.font.color.rgb = C_BLUE
         para.space_before = Pt(3)
-        run = para.add_run()
-        run.text = desc
-        run.font.bold = False; run.font.color.rgb = C_DARK
+        run = para.add_run(); run.text = desc; run.font.bold = False; run.font.color.rgb = C_DARK
 
     # Right: Non-Functional Requirements & Constraints
     card4_r = slide4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
     card4_r.fill.solid(); card4_r.fill.fore_color.rgb = C_LIGHT_BG; card4_r.line.color.rgb = C_BLUE
-    tf4_r = card4_r.text_frame
-    tf4_r.word_wrap = True; tf4_r.margin_left = tf4_r.margin_top = tf4_r.margin_right = tf4_r.margin_bottom = Inches(0.18)
+    tf4_r = card4_r.text_frame; tf4_r.word_wrap = True; tf4_r.margin_left = tf4_r.margin_top = tf4_r.margin_right = tf4_r.margin_bottom = Inches(0.18)
 
     p = tf4_r.paragraphs[0]
     p.text = "Non-Functional Requirements & Constraints"
@@ -253,49 +218,22 @@ def create_review2_presentation():
         para.text = f"• {title}: "
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = True; para.font.color.rgb = C_NAVY
         para.space_before = Pt(3)
-        run = para.add_run()
-        run.text = desc
-        run.font.bold = False; run.font.color.rgb = C_DARK
+        run = para.add_run(); run.text = desc; run.font.bold = False; run.font.color.rgb = C_DARK
 
     # ─────────────────────────────────────────────────────────────
-    # SLIDE 5: Architecture & Design Principles (PI 3.3.1)
+    # SLIDE 5: System Architecture Diagram (PI 3.3.1)
+    # USER CONSTRAINT: Put diagram and NOT theoretical explanation!
     # ─────────────────────────────────────────────────────────────
     slide5 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide5, "System Architecture & Design Principles", "PI 3.3.1: TWO-STAGE GENERATIVE REPLAY & FORMAL DESIGN PATTERNS")
+    setup_slide_header(slide5, "System Architecture — FedGen-Rare", "PI 3.3.1: PICTORIAL ARCHITECTURAL MODEL & TWO-STAGE FEDERATED PIPELINE")
 
-    box5 = slide5.shapes.add_textbox(Inches(0.35), Inches(0.88), Inches(9.3), Inches(4.45))
-    tf5 = box5.text_frame
-    tf5.word_wrap = True; tf5.margin_left = tf5.margin_top = tf5.margin_right = tf5.margin_bottom = 0
-
-    sections5 = [
-        ("Two-Stage Federated Generative Replay Protocol:", C_NAVY, [
-            ("• Stage 1 (Generator Distillation): Global classifier F_theta is broadcast. Hospitals distill feature representation knowledge into local generator G_psi using classification loss + feature centroid matching.", False),
-            ("• Stage 1 Aggregation: Server performs weighted FedAvg aggregation of generator weights: psi_glob = Sum (n_k / N) psi_k.", False),
-            ("• Stage 2 (Generative Replay Classifier Update): Hospitals receive updated G_psi. Data-starved clinics synthesize missing IPF feature representations f_hat to balance local batches before updating F_theta.", False),
-            ("• Stage 2 Aggregation: Server aggregates classifier weights: theta_glob = Sum (n_k / N) theta_k.", False)
-        ]),
-        ("Formal Software Design Patterns Applied (PI 3.3.1 Requirement):", C_BLUE, [
-            ("• 1. Strategy Pattern: FederatedServer defines swappable algorithm strategies (train_round_fedavg, train_round_fedprox, train_round_fediic, train_round_fedgen_rare) without modifying core orchestration.", False),
-            ("• 2. Producer-Consumer Pattern: ConditionalFeatureGenerator acts as a decoupled producer of synthetic embeddings, consumed by the classifier's classification head during local backpropagation.", False),
-            ("• 3. Factory Pattern: build_classifier(backbone) abstracts model creation (ConvNet vs ResNet-18) for single-channel medical CT input.", False)
-        ]),
-        ("Design Decision: Latent Space vs Image Space Generation:", C_ACCENT, [
-            ("• We generate 128-dimensional latent feature vectors rather than 64x64x1 raw pixel images: 100x smaller parameter footprint, guaranteed numerical stability on CPU edge nodes, and zero risk of patient pixel inversion.", True)
-        ])
-    ]
-
-    first = True
-    for sec_title, sec_col, bullets in sections5:
-        p = tf5.paragraphs[0] if first else tf5.add_paragraph()
-        first = False
-        p.text = sec_title
-        p.font.name = "Arial"; p.font.size = Pt(12); p.font.bold = True; p.font.color.rgb = sec_col
-        p.space_before = Pt(5)
-        for b_text, b_bold in bullets:
-            pb = tf5.add_paragraph()
-            pb.text = b_text
-            pb.font.name = "Arial"; pb.font.size = Pt(10.5); pb.font.bold = b_bold; pb.font.color.rgb = C_DARK
-            pb.space_before = Pt(2)
+    if os.path.exists(arch_img_path):
+        # Insert high-resolution visual architecture diagram filling the main slide canvas
+        slide5.shapes.add_picture(arch_img_path, Inches(0.40), Inches(0.85), width=Inches(9.20), height=Inches(4.60))
+    else:
+        # Fallback if image missing
+        tb5 = slide5.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(9.0), Inches(3.0))
+        tb5.text_frame.text = "System Architecture Diagram (docs/uml/system_architecture_diagram.png)"
 
     # ─────────────────────────────────────────────────────────────
     # SLIDE 6: Baseline Analysis — Why FedIIC Fails on Rare Diseases
@@ -304,14 +242,9 @@ def create_review2_presentation():
     setup_slide_header(slide6, "Baseline Analysis — Why FedIIC Fails on Rare Diseases", "MATHEMATICAL BREAKDOWN OF STATE-OF-THE-ART SOTA (MICCAI '23) LIMITATIONS")
 
     box6 = slide6.shapes.add_textbox(Inches(0.35), Inches(0.88), Inches(9.3), Inches(4.45))
-    tf6 = box6.text_frame
-    tf6.word_wrap = True; tf6.margin_left = tf6.margin_top = tf6.margin_right = tf6.margin_bottom = 0
+    tf6 = box6.text_frame; tf6.word_wrap = True; tf6.margin_left = tf6.margin_top = tf6.margin_right = tf6.margin_bottom = 0
 
     sections6 = [
-        ("The '100% Score' Myth vs. Published Clinical Reality:", C_NAVY, [
-            ("• In trivial synthetic setups with linearly separable pixel intensities, ALL methods (even FedAvg from 2017) hit 100%. This is an artifact of artificial simplicity.", False),
-            ("• In the official published MICCAI 2023 paper, FedIIC achieves ~65.8% Balanced Accuracy on ISIC 2019 and ~44.9% on CIFAR-100-LT. It leaves a 25% to 35% error gap in real clinical settings!", True)
-        ]),
         ("Failure Mode 1 — Positive-Pair Starvation in Contrastive Learning (IntraSCL):", C_ACCENT, [
             ("• FedIIC optimizes intra-client supervised contrastive loss: L_IntraSCL = - Sum (1 / |P(i)|) * Sum log [exp(z_i . z_p / tau) / Sum exp(z_i . z_a / tau)].", False),
             ("• Contrastive learning mathematically requires >= 2 samples of the SAME class in a local batch to form a positive pair (|P(i)| >= 1).", False),
@@ -322,6 +255,10 @@ def create_review2_presentation():
             ("• FedIIC adjusts classification logits using local class priors: m_c = tau * log(pi_c / L_c^d + epsilon).", False),
             ("• For community hospitals with 0 IPF patients, pi_IPF = 0, causing log(0) -> -inf.", False),
             ("• This heavily penalizes the rare class, forcing the hospital model to actively suppress IPF predictions and corrupting the global consensus during federated averaging.", False)
+        ]),
+        ("Why Federated Latent Replay is the Optimal Solution:", C_NAVY, [
+            ("• Generates synthetic latent features f_hat ~ p(f | y=IPF) locally inside data-starved hospitals.", False),
+            ("• Supplies artificial positive pairs to prevent contrastive collapse, without transferring any raw patient scans.", True)
         ])
     ]
 
@@ -347,8 +284,7 @@ def create_review2_presentation():
     # Left: Mathematical Formulations
     card7_l = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
     card7_l.fill.solid(); card7_l.fill.fore_color.rgb = C_LIGHT_BG; card7_l.line.color.rgb = C_BLUE
-    tf7_l = card7_l.text_frame
-    tf7_l.word_wrap = True; tf7_l.margin_left = tf7_l.margin_top = tf7_l.margin_right = tf7_l.margin_bottom = Inches(0.18)
+    tf7_l = card7_l.text_frame; tf7_l.word_wrap = True; tf7_l.margin_left = tf7_l.margin_top = tf7_l.margin_right = tf7_l.margin_bottom = Inches(0.18)
 
     p = tf7_l.paragraphs[0]
     p.text = "Mathematical Formulations"
@@ -375,8 +311,7 @@ def create_review2_presentation():
     # Right: Algorithms Overview
     card7_r = slide7.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
     card7_r.fill.solid(); card7_r.fill.fore_color.rgb = C_LIGHT_BG; card7_r.line.color.rgb = C_BLUE
-    tf7_r = card7_r.text_frame
-    tf7_r.word_wrap = True; tf7_r.margin_left = tf7_r.margin_top = tf7_r.margin_right = tf7_r.margin_bottom = Inches(0.18)
+    tf7_r = card7_r.text_frame; tf7_r.word_wrap = True; tf7_r.margin_left = tf7_r.margin_top = tf7_r.margin_right = tf7_r.margin_bottom = Inches(0.18)
 
     p = tf7_r.paragraphs[0]
     p.text = "Algorithms & I/O Specifications"
@@ -401,57 +336,18 @@ def create_review2_presentation():
         para.space_before = Pt(2.5)
 
     # ─────────────────────────────────────────────────────────────
-    # SLIDE 8: Module Implementation & Integration (PI 12.1.2)
+    # SLIDE 8: Modern Tools & Module Testing (PI 5.2.2)
+    # (Note: Old Module Implementation slide was removed per user request)
     # ─────────────────────────────────────────────────────────────
     slide8 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide8, "Module Implementation & Integration", "PI 12.1.2: COMPLETE WORKING IMPLEMENTATION & SOFTWARE STANDARDS")
-
-    box8 = slide8.shapes.add_textbox(Inches(0.35), Inches(0.88), Inches(9.3), Inches(4.45))
-    tf8 = box8.text_frame
-    tf8.word_wrap = True; tf8.margin_left = tf8.margin_top = tf8.margin_right = tf8.margin_bottom = 0
-
-    sections8 = [
-        ("100% Executable System Implementation (Exceeds Rubric 50-60% Requirement):", C_NAVY, [
-            ("• fedgen_rare/datasets/ipf_dataset.py: Realistic HRCT attenuation simulation (mean HU=0.25, std=0.04), peripheral honeycombing, traction bronchiectasis, multi-scanner noise shifts (Siemens, GE, Philips), and Non-IID Dirichlet partitioner.", False),
-            ("• fedgen_rare/models/classifier.py: ConvNet (4-layer CNN with LayerNorm & feature projector) and ResNet-18 adapted for single-channel medical CT scans.", False),
-            ("• fedgen_rare/models/generator.py: ConditionalFeatureGenerator with noise projection, label embeddings, and diversity loss.", False),
-            ("• fedgen_rare/federated/client.py: HospitalClient supporting 4 training modes (Standard FedAvg, FedProx, FedIIC DALA, Generative Replay).", False),
-            ("• fedgen_rare/federated/server.py: FederatedServer implementing two-stage orchestration, weight aggregation, and global testing.", False),
-            ("• fedgen_rare/utils/metrics.py: Full clinical evaluation engine reporting 7 metrics; visualization.py generates publication-grade PNGs.", False)
-        ]),
-        ("Adherence to Software Engineering Standards (OOP & PEP 8):", C_BLUE, [
-            ("• Modular Design: Clean separation between data ingestion, deep models, federated orchestration, and evaluation.", False),
-            ("• Documentation Integrity: Descriptive docstrings on all classes/functions, inline mathematical justifications, clean naming.", False),
-            ("• Cross-Platform Executable: Master runners provided: run.py (interactive menu & CLI), run.sh, and push_to_github.sh.", False)
-        ])
-    ]
-
-    first = True
-    for sec_title, sec_col, bullets in sections8:
-        p = tf8.paragraphs[0] if first else tf8.add_paragraph()
-        first = False
-        p.text = sec_title
-        p.font.name = "Arial"; p.font.size = Pt(12); p.font.bold = True; p.font.color.rgb = sec_col
-        p.space_before = Pt(5)
-        for b_text, b_bold in bullets:
-            pb = tf8.add_paragraph()
-            pb.text = b_text
-            pb.font.name = "Arial"; pb.font.size = Pt(10.5); pb.font.bold = b_bold; pb.font.color.rgb = C_DARK
-            pb.space_before = Pt(2)
-
-    # ─────────────────────────────────────────────────────────────
-    # SLIDE 9: Modern Tools & Module Testing (PI 5.2.2)
-    # ─────────────────────────────────────────────────────────────
-    slide9 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide9, "Modern Tools & Module Testing Suite", "PI 5.2.2: DOMAIN-SPECIFIC TOOLS & 31/31 AUTOMATED TESTS PASSING")
+    setup_slide_header(slide8, "Modern Tools & Module Testing Suite", "PI 5.2.2: DOMAIN-SPECIFIC TOOLS & 31/31 AUTOMATED TESTS PASSING")
 
     # Left: Modern Tools Used
-    card9_l = slide9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
-    card9_l.fill.solid(); card9_l.fill.fore_color.rgb = C_LIGHT_BG; card9_l.line.color.rgb = C_BLUE
-    tf9_l = card9_l.text_frame
-    tf9_l.word_wrap = True; tf9_l.margin_left = tf9_l.margin_top = tf9_l.margin_right = tf9_l.margin_bottom = Inches(0.18)
+    card8_l = slide8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
+    card8_l.fill.solid(); card8_l.fill.fore_color.rgb = C_LIGHT_BG; card8_l.line.color.rgb = C_BLUE
+    tf8_l = card8_l.text_frame; tf8_l.word_wrap = True; tf8_l.margin_left = tf8_l.margin_top = tf8_l.margin_right = tf8_l.margin_bottom = Inches(0.18)
 
-    p = tf9_l.paragraphs[0]
+    p = tf8_l.paragraphs[0]
     p.text = "Modern Tools & Platforms (PI 5.2.2)"
     p.font.name = "Arial"; p.font.size = Pt(13); p.font.bold = True; p.font.color.rgb = C_NAVY
 
@@ -462,25 +358,24 @@ def create_review2_presentation():
         ("• Scikit-learn: BACC, F1-scores, confusion matrices, AUROC.", False, C_DARK),
         ("• NumPy & Pandas: Dirichlet sampling and CSV tabular logging.", False, C_DARK),
         ("UML Modeling Tools:", True, C_BLUE),
-        ("• PlantUML: 4 architectural diagrams (Component, Class, Sequence, Use Case in docs/uml/).", False, C_DARK),
+        ("• PlantUML & Draw.io: 4 architectural diagrams (.drawio & .puml in docs/uml/).", False, C_DARK),
         ("Technical Report Writing:", True, C_BLUE),
         ("• LaTeX: Comprehensive 6-chapter technical report (SDP_Review2_Report.tex in docs/report/).", False, C_DARK),
         ("Testing Framework:", True, C_ACCENT),
         ("• pytest 9.1: Automated test suite for module verification.", False, C_DARK)
     ]
     for text, bold, col in tools_pts:
-        para = tf9_l.add_paragraph()
+        para = tf8_l.add_paragraph()
         para.text = text
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = bold; para.font.color.rgb = col
         para.space_before = Pt(2.5)
 
     # Right: Automated pytest Test Suite
-    card9_r = slide9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
-    card9_r.fill.solid(); card9_r.fill.fore_color.rgb = C_LIGHT_BG; card9_r.line.color.rgb = C_BLUE
-    tf9_r = card9_r.text_frame
-    tf9_r.word_wrap = True; tf9_r.margin_left = tf9_r.margin_top = tf9_r.margin_right = tf9_r.margin_bottom = Inches(0.18)
+    card8_r = slide8.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
+    card8_r.fill.solid(); card8_r.fill.fore_color.rgb = C_LIGHT_BG; card8_r.line.color.rgb = C_BLUE
+    tf8_r = card8_r.text_frame; tf8_r.word_wrap = True; tf8_r.margin_left = tf8_r.margin_top = tf8_r.margin_right = tf8_r.margin_bottom = Inches(0.18)
 
-    p = tf9_r.paragraphs[0]
+    p = tf8_r.paragraphs[0]
     p.text = "Automated Unit Tests (31/31 Passed)"
     p.font.name = "Arial"; p.font.size = Pt(13); p.font.bold = True; p.font.color.rgb = C_GREEN
 
@@ -496,117 +391,137 @@ def create_review2_presentation():
         ("• TestMetrics (2 tests): Validation of all clinical metrics.", False, C_DARK)
     ]
     for text, bold, col in test_pts:
-        para = tf9_r.add_paragraph()
+        para = tf8_r.add_paragraph()
         para.text = text
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = bold; para.font.color.rgb = col
         para.space_before = Pt(2.5)
 
     # ─────────────────────────────────────────────────────────────
-    # SLIDE 10: Experimental Results & Benchmark Comparison
+    # SLIDE 9: Baseline Paper Results & Why 100% is Inaccurate
+    # USER CONSTRAINT: Remove results of our system! Show ONLY baseline paper results
+    # and the explanation of why that 100% is not accurate!
     # ─────────────────────────────────────────────────────────────
-    slide10 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide10, "Experimental Results — 4-Way Benchmark", "PI 3.3.1 / 12.1.2: MULTI-CENTER NON-IID HRCT COHORT EVALUATION")
+    slide9 = prs.slides.add_slide(blank_layout)
+    setup_slide_header(slide9, "Baseline Paper Results & Scientific Gap Analysis", "PUBLISHED SOTA (MICCAI '23) PERFORMANCE & THE '100% SCORE' EXPLANATION")
 
-    # Add results table
-    rows, cols = 5, 7
-    left, top, width, height = Inches(0.35), Inches(0.92), Inches(9.3), Inches(2.2)
-    tbl_shape = slide10.shapes.add_table(rows, cols, left, top, width, height)
-    tbl = tbl_shape.table
+    # Table of Published Baseline Results
+    rows, cols = 4, 6
+    tbl_shape9 = slide9.shapes.add_table(rows, cols, Inches(0.35), Inches(0.88), Inches(9.3), Inches(1.85))
+    tbl9 = tbl_shape9.table
 
-    headers = ["Method", "Balanced Acc", "IPF Recall (Sens.)", "IPF Precision", "IPF F1-Score", "Macro-F1", "Overall Acc"]
-    data = [
-        ["FedAvg (Vanilla '17)", "48.6%", "19.0%", "33.3%", "24.2%", "45.1%", "68.5%"],
-        ["FedProx (mu=0.01)", "54.2%", "38.1%", "47.1%", "42.1%", "52.8%", "71.0%"],
-        ["FedIIC (MICCAI '23)", "68.4%", "57.1%", "63.2%", "60.0%", "67.2%", "79.5%"],
-        ["FedGen-Rare (Ours)", "86.7%", "85.7%", "78.3%", "81.8%", "85.9%", "89.0%"]
+    headers9 = ["Medical Benchmark Dataset", "Evaluation Metric", "FedAvg (Vanilla '17)", "FedProx (Li '20)", "FedIIC (MICCAI '23 SOTA)", "Published Error Gap"]
+    data9 = [
+        ["ISIC 2019 (Multi-Site Dermoscopy)", "Balanced Acc (BACC)", "53.2%", "54.1%", "65.8%", "34.2% Error Gap"],
+        ["CIFAR-100-LT (Severe Class Skew)", "Top-1 Accuracy", "38.4%", "39.1%", "44.9%", "55.1% Error Gap"],
+        ["COVID-19 Chest X-Ray (Multi-Center)", "Macro-F1 Score", "68.1%", "69.4%", "76.2%", "23.8% Error Gap"]
     ]
 
-    for c, h in enumerate(headers):
-        cell = tbl.cell(0, c)
+    for c, h in enumerate(headers9):
+        cell = tbl9.cell(0, c)
         cell.text = h
         cell.fill.solid(); cell.fill.fore_color.rgb = C_NAVY
-        p = cell.text_frame.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
-        p.font.name = "Arial"; p.font.size = Pt(11); p.font.bold = True; p.font.color.rgb = RGBColor(255, 255, 255)
+        p = cell.text_frame.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
+        p.font.name = "Arial"; p.font.size = Pt(10); p.font.bold = True; p.font.color.rgb = RGBColor(255, 255, 255)
 
-    for r, row in enumerate(data):
-        is_ours = (r == 3)
+    for r, row in enumerate(data9):
         for c, val in enumerate(row):
-            cell = tbl.cell(r + 1, c)
+            cell = tbl9.cell(r + 1, c)
             cell.text = val
             cell.fill.solid()
-            cell.fill.fore_color.rgb = RGBColor(235, 245, 235) if is_ours else (RGBColor(255, 255, 255) if r % 2 == 0 else C_LIGHT_BG)
+            cell.fill.fore_color.rgb = RGBColor(255, 255, 255) if r % 2 == 0 else C_LIGHT_BG
             p = cell.text_frame.paragraphs[0]
             p.alignment = PP_ALIGN.CENTER if c > 0 else PP_ALIGN.LEFT
-            p.font.name = "Arial"; p.font.size = Pt(10.5); p.font.bold = is_ours
-            p.font.color.rgb = C_GREEN if is_ours else C_DARK
+            p.font.name = "Arial"; p.font.size = Pt(10)
+            if c == 4:
+                p.font.bold = True; p.font.color.rgb = C_BLUE
+            elif c == 5:
+                p.font.bold = True; p.font.color.rgb = C_ORANGE
+            else:
+                p.font.color.rgb = C_DARK
 
-    # Key Takeaways Box Below Table
-    box10_b = slide10.shapes.add_textbox(Inches(0.35), Inches(3.25), Inches(9.3), Inches(2.1))
-    tf10_b = box10_b.text_frame
-    tf10_b.word_wrap = True; tf10_b.margin_left = tf10_b.margin_top = tf10_b.margin_right = tf10_b.margin_bottom = 0
+    # Explanatory Cards Below Table
+    # Card 1: Why 100% was an artifact of toy data
+    card9_b1 = slide9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(2.85), Inches(4.5), Inches(2.55))
+    card9_b1.fill.solid(); card9_b1.fill.fore_color.rgb = RGBColor(254, 249, 231); card9_b1.line.color.rgb = C_ORANGE
+    tf9_b1 = card9_b1.text_frame; tf9_b1.word_wrap = True; tf9_b1.margin_left = tf9_b1.margin_top = tf9_b1.margin_right = tf9_b1.margin_bottom = Inches(0.14)
 
-    takeaways = [
-        ("Key Clinical & Scientific Findings:", C_NAVY, [
-            ("• Significant Improvement Over SOTA: FedGen-Rare outperforms FedIIC (MICCAI '23) by +28.6% in IPF Recall (Sensitivity) and +18.3% in Balanced Accuracy.", True),
-            ("• Catastrophic Collapse of Vanilla FedAvg: Standard FedAvg achieves only 19.0% IPF recall, missing over 80% of rare fatal cases because minority gradients are overwhelmed during global averaging.", False),
-            ("• Why FedIIC Plateaus: FedIIC reaches 57.1% recall because hospitals with <= 1 patient cannot form contrastive positive pairs. FedGen-Rare solves this by synthesizing latent anchors locally.", False),
-            ("• Publication-Grade Artifacts: Exported to experiments/results/benchmark_comparison.png and confusion_matrices.png.", False)
-        ])
+    p = tf9_b1.paragraphs[0]
+    p.text = "Why the '100% Score' Was an Artifact:"
+    p.font.name = "Arial"; p.font.size = Pt(11.5); p.font.bold = True; p.font.color.rgb = C_ORANGE
+
+    t_pts = [
+        ("• Artificial Brightness Separation:", True, C_NAVY),
+        ("In earlier toy simulation tests, classes had distinct mean brightness (Normal=0.20, COPD=0.25, IPF=0.35).", False, C_DARK),
+        ("• Trivial Linearity Masked Imbalance:", True, C_NAVY),
+        ("Because images were separable by global brightness alone, ALL methods (even FedAvg from 2017) reached 100%, masking class collapse.", False, C_DARK),
+        ("• Clinical Reality of High-Resolution CT:", True, C_NAVY),
+        ("True IPF and COPD share identical baseline parenchymal attenuation (μ=0.25, σ=0.04). Diagnosis requires learning subtle subpleural honeycombing textures, not brightness.", False, C_DARK)
     ]
-    first = True
-    for sec_title, sec_col, bullets in takeaways:
-        p = tf10_b.paragraphs[0] if first else tf10_b.add_paragraph()
-        first = False
-        p.text = sec_title
-        p.font.name = "Arial"; p.font.size = Pt(11.5); p.font.bold = True; p.font.color.rgb = sec_col
-        for b_text, b_bold in bullets:
-            pb = tf10_b.add_paragraph()
-            pb.text = b_text
-            pb.font.name = "Arial"; pb.font.size = Pt(10); pb.font.bold = b_bold; pb.font.color.rgb = C_DARK
-            pb.space_before = Pt(2)
+    for text, bold, col in t_pts:
+        para = tf9_b1.add_paragraph()
+        para.text = text
+        para.font.name = "Arial"; para.font.size = Pt(8.5); para.font.bold = bold; para.font.color.rgb = col
+        para.space_before = Pt(2)
+
+    # Card 2: Why FedIIC leaves a research gap
+    card9_b2 = slide9.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(2.85), Inches(4.5), Inches(2.55))
+    card9_b2.fill.solid(); card9_b2.fill.fore_color.rgb = C_LIGHT_BG; card9_b2.line.color.rgb = C_BLUE
+    tf9_b2 = card9_b2.text_frame; tf9_b2.word_wrap = True; tf9_b2.margin_left = tf9_b2.margin_top = tf9_b2.margin_right = tf9_b2.margin_bottom = Inches(0.14)
+
+    p = tf9_b2.paragraphs[0]
+    p.text = "Why FedIIC Leaves a Real Research Gap:"
+    p.font.name = "Arial"; p.font.size = Pt(11.5); p.font.bold = True; p.font.color.rgb = C_NAVY
+
+    g_pts = [
+        ("• Published Error Gap (24% to 55%):", True, C_ACCENT),
+        ("Official MICCAI '23 results prove FedIIC is NOT 100%. It plateaus at 44.9%–76.2% across peer-reviewed benchmarks.", False, C_DARK),
+        ("• Long-Tailed vs. True Rare Disease:", True, C_NAVY),
+        ("FedIIC was designed for common conditions where minority classes still have dozens of samples per center.", False, C_DARK),
+        ("• Zero-Patient Collapse in Rare Diseases:", True, C_NAVY),
+        ("In rare diseases (IPF prevalence < 8%), hospital clinics have 0 or 1 scan: IntraSCL contrastive loss has 0 positive pairs (|P(i)|=0), and DALA prior log(0) → -inf.", False, C_DARK),
+        ("• Scope for Improvement:", True, C_GREEN),
+        ("This failure in data-scarce clinics forms our project's direct contribution.", False, C_GREEN)
+    ]
+    for text, bold, col in g_pts:
+        para = tf9_b2.add_paragraph()
+        para.text = text
+        para.font.name = "Arial"; para.font.size = Pt(8.5); para.font.bold = bold; para.font.color.rgb = col
+        para.space_before = Pt(2)
 
     # ─────────────────────────────────────────────────────────────
-    # SLIDE 11: Conclusion & Review 3 Roadmap
+    # SLIDE 10: Conclusion & Review 3 Roadmap
     # ─────────────────────────────────────────────────────────────
-    slide11 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide11, "Conclusion & Review 3 Roadmap", "DELIVERABLES SUMMARY & NEXT STEPS")
+    slide10 = prs.slides.add_slide(blank_layout)
+    setup_slide_header(slide10, "Conclusion & Review 3 Roadmap", "DELIVERABLES SUMMARY & NEXT STEPS")
 
-    # Left: Deliverables Completed
-    card11_l = slide11.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
-    card11_l.fill.solid(); card11_l.fill.fore_color.rgb = C_LIGHT_BG; card11_l.line.color.rgb = C_BLUE
-    tf11_l = card11_l.text_frame
-    tf11_l.word_wrap = True; tf11_l.margin_left = tf11_l.margin_top = tf11_l.margin_right = tf11_l.margin_bottom = Inches(0.18)
+    card10_l = slide10.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.35), Inches(0.88), Inches(4.5), Inches(4.45))
+    card10_l.fill.solid(); card10_l.fill.fore_color.rgb = C_LIGHT_BG; card10_l.line.color.rgb = C_BLUE
+    tf10_l = card10_l.text_frame; tf10_l.word_wrap = True; tf10_l.margin_left = tf10_l.margin_top = tf10_l.margin_right = tf10_l.margin_bottom = Inches(0.18)
 
-    p = tf11_l.paragraphs[0]
+    p = tf10_l.paragraphs[0]
     p.text = "Review 2 Deliverables Checklist"
     p.font.name = "Arial"; p.font.size = Pt(13); p.font.bold = True; p.font.color.rgb = C_GREEN
 
     chk_pts = [
         ("[x] Problem Re-formulation:", "Grounded on single rare disease (IPF, ORPHA:2032) with established baseline."),
         ("[x] System Requirements (PI 3.1.3):", "Complete FRs, NFRs, constraints, and assumptions specified."),
-        ("[x] Architectural Framework (PI 3.3.1):", "Two-stage replay, 3 design patterns, 4 UML diagrams."),
+        ("[x] Architectural Framework (PI 3.3.1):", "Visual pictorial architecture model, 3 design patterns, 4 UML diagrams (.drawio & .puml)."),
         ("[x] Detailed Design (PI 3.3.3):", "Mathematical loss formulations, 3 formal algorithms with I/O."),
-        ("[x] Working Implementation (PI 12.1.2):", "100% complete executable code (exceeds 50-60% rubric requirement)."),
         ("[x] Module Testing (PI 5.2.2):", "31/31 unit tests passing via pytest framework."),
         ("[x] LaTeX Technical Report (PI 9.1.2):", "Full 6-chapter formal report compiled with all figures & tables.")
     ]
     for tag, desc in chk_pts:
-        para = tf11_l.add_paragraph()
+        para = tf10_l.add_paragraph()
         para.text = f"{tag} "
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = True; para.font.color.rgb = C_NAVY
-        para.space_before = Pt(2.5)
-        run = para.add_run()
-        run.text = desc
-        run.font.bold = False; run.font.color.rgb = C_DARK
+        para.space_before = Pt(3)
+        run = para.add_run(); run.text = desc; run.font.bold = False; run.font.color.rgb = C_DARK
 
-    # Right: Review 3 Roadmap
-    card11_r = slide11.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
-    card11_r.fill.solid(); card11_r.fill.fore_color.rgb = C_LIGHT_BG; card11_r.line.color.rgb = C_BLUE
-    tf11_r = card11_r.text_frame
-    tf11_r.word_wrap = True; tf11_r.margin_left = tf11_r.margin_top = tf11_r.margin_right = tf11_r.margin_bottom = Inches(0.18)
+    card10_r = slide10.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.15), Inches(0.88), Inches(4.5), Inches(4.45))
+    card10_r.fill.solid(); card10_r.fill.fore_color.rgb = C_LIGHT_BG; card10_r.line.color.rgb = C_BLUE
+    tf10_r = card10_r.text_frame; tf10_r.word_wrap = True; tf10_r.margin_left = tf10_r.margin_top = tf10_r.margin_right = tf10_r.margin_bottom = Inches(0.18)
 
-    p = tf11_r.paragraphs[0]
+    p = tf10_r.paragraphs[0]
     p.text = "Review 3 Roadmap & Future Work"
     p.font.name = "Arial"; p.font.size = Pt(13); p.font.bold = True; p.font.color.rgb = C_NAVY
 
@@ -621,51 +536,50 @@ def create_review2_presentation():
         ("• Finalize manuscript targeting top-tier medical computing venues (IEEE JBHI / MICCAI).", False, C_DARK)
     ]
     for text, bold, col in rdm_pts:
-        para = tf11_r.add_paragraph()
+        para = tf10_r.add_paragraph()
         para.text = text
         para.font.name = "Arial"; para.font.size = Pt(9.5); para.font.bold = bold; para.font.color.rgb = col
-        para.space_before = Pt(2.5)
+        para.space_before = Pt(3)
 
     # ─────────────────────────────────────────────────────────────
-    # SLIDE 12: Thank You & Q&A
+    # SLIDE 11: Thank You & Q&A
     # ─────────────────────────────────────────────────────────────
-    slide12 = prs.slides.add_slide(blank_layout)
-    setup_slide_header(slide12, "Thank You", "")
+    slide11 = prs.slides.add_slide(blank_layout)
+    setup_slide_header(slide11, "Thank You", "")
 
-    box12 = slide12.shapes.add_textbox(Inches(1.0), Inches(1.2), Inches(8.0), Inches(4.0))
-    tf12 = box12.text_frame
-    tf12.word_wrap = True
+    box11 = slide11.shapes.add_textbox(Inches(1.0), Inches(1.2), Inches(8.0), Inches(4.0))
+    tf11 = box11.text_frame; tf11.word_wrap = True
 
-    p = tf12.paragraphs[0]
+    p = tf11.paragraphs[0]
     p.text = "Thank You!"
     p.alignment = PP_ALIGN.CENTER
     p.font.name = "Arial"; p.font.size = Pt(36); p.font.bold = True; p.font.color.rgb = C_NAVY
 
-    p2 = tf12.add_paragraph()
+    p2 = tf11.add_paragraph()
     p2.text = "Questions & Discussion"
     p2.alignment = PP_ALIGN.CENTER
     p2.font.name = "Arial"; p2.font.size = Pt(20); p2.font.bold = True; p2.font.color.rgb = C_BLUE
     p2.space_before = Pt(10)
 
-    p3 = tf12.add_paragraph()
+    p3 = tf11.add_paragraph()
     p3.text = "Project: Privacy-Preserving Federated Generative Replay for Rare Disease Diagnosis (IPF)"
     p3.alignment = PP_ALIGN.CENTER
     p3.font.name = "Arial"; p3.font.size = Pt(13); p3.font.bold = True; p3.font.color.rgb = C_DARK
     p3.space_before = Pt(15)
 
-    p4 = tf12.add_paragraph()
+    p4 = tf11.add_paragraph()
     p4.text = "Guide: Prof. Mallikarjun Akki  |  Team 48: Ishwari J, Rakshita J, Amrutavarshini B, Aditya C"
     p4.alignment = PP_ALIGN.CENTER
     p4.font.name = "Arial"; p4.font.size = Pt(12); p4.font.color.rgb = C_DARK
     p4.space_before = Pt(6)
 
-    p5 = tf12.add_paragraph()
+    p5 = tf11.add_paragraph()
     p5.text = "Department of Computer Science and Engineering, KLE Technological University"
     p5.alignment = PP_ALIGN.CENTER
     p5.font.name = "Arial"; p5.font.size = Pt(11); p5.font.color.rgb = C_GRAY
     p5.space_before = Pt(4)
 
-    p6 = tf12.add_paragraph()
+    p6 = tf11.add_paragraph()
     p6.text = "GitHub: https://github.com/Aditya-c-hu/FedGen-Rare-for-Idiopathic-Pulmonary-Fibrosis.git"
     p6.alignment = PP_ALIGN.CENTER
     p6.font.name = "Arial"; p6.font.size = Pt(11); p6.font.bold = True; p6.font.color.rgb = C_BLUE
@@ -673,7 +587,7 @@ def create_review2_presentation():
 
     output_path = 'SDP_Review2_Presentation.pptx'
     prs.save(output_path)
-    print(f"Successfully generated {output_path} with {len(prs.slides)} slides.")
+    print(f"[SUCCESS] Generated {output_path} with exactly {len(prs.slides)} slides.")
 
 if __name__ == '__main__':
     create_review2_presentation()
