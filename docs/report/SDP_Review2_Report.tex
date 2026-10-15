@@ -232,24 +232,64 @@ The following criteria were used to justify the architectural choices:
 
 \section{UML Diagrams}
 
+The following four UML diagrams describe the structural and behavioural design of FedGen-Rare. All diagrams were generated from PlantUML/Draw.io sources located in \texttt{docs/uml/}.
+
+\subsection{Component Diagram}
+
+The component diagram (Figure~\ref{fig:uml_component}) illustrates the top-level deployment topology: a central \textbf{Federated Server} hosts the global classifier $\mathcal{F}_\theta$ and generator $\mathcal{G}_\psi$, communicating with $K$ \textbf{Hospital Client} nodes. Each client encapsulates a private \texttt{IPFChestCTDataset}, a local copy of both models, and all four training-round strategies.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{../uml/01_component_diagram.drawio.png}
+    \caption{FedGen-Rare Component Diagram --- deployment topology showing the Federated Server, Hospital Clients, local datasets, and inter-component communication interfaces.}
+    \label{fig:uml_component}
+\end{figure}
+
 \subsection{Class Diagram}
-Refer to \texttt{docs/uml/02\_class\_diagram.puml}. This diagram shows the full class hierarchy:
+
+The class diagram (Figure~\ref{fig:uml_class}) shows the full object-oriented hierarchy:
 \begin{itemize}
     \item \texttt{BaseClassifier} $\leftarrow$ \texttt{ConvNet}, \texttt{ResNetClassifier}
     \item \texttt{HospitalClient} aggregates \texttt{IPFChestCTDataset} and uses \texttt{DeviceAgnosticDALA}, \texttt{ContrastiveAlignmentLoss}
-    \item \texttt{FederatedServer} orchestrates \texttt{HospitalClient} list and maintains global models
+    \item \texttt{FederatedServer} orchestrates the \texttt{HospitalClient} list and maintains the global generator and classifier models
 \end{itemize}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\linewidth]{../uml/02_class_diagram.drawio.png}
+    \caption{FedGen-Rare Class Diagram --- object-oriented hierarchy for all core modules: classifiers, conditional generator, hospital clients, and federated server.}
+    \label{fig:uml_class}
+\end{figure}
+
 \subsection{Sequence Diagram}
-Refer to \texttt{docs/uml/03\_sequence\_diagram.puml}. Key flows:
+
+The sequence diagram (Figure~\ref{fig:uml_sequence}) captures one full FedGen-Rare communication round. Key flows:
 \begin{enumerate}
-    \item Server distributes $\theta, \psi$ to all hospital clients.
-    \item Each hospital trains a local generator copy (Stage 1).
-    \item Updated generators are aggregated via FedAvg.
-    \item Each hospital trains the classifier using generative replay (Stage 2).
-    \item Updated classifiers are aggregated via FedAvg.
-    \item Global evaluation is performed on the held-out test set.
+    \item Server broadcasts global weights $(\theta, \psi)$ to all $K$ hospital clients.
+    \item Each hospital trains a local generator copy using Algorithm~\ref{alg:gen_train} (\textbf{Stage 1: Generator Update}).
+    \item Updated generator weights $\{\psi_k\}$ are aggregated on the server via weighted FedAvg.
+    \item Each hospital trains the diagnostic classifier with generative replay using Algorithm~\ref{alg:clf_replay} (\textbf{Stage 2: Classifier Update}).
+    \item Updated classifier weights $\{\theta_k\}$ are aggregated on the server.
+    \item Global evaluation is performed on the held-out test set and metrics are logged.
 \end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{../uml/03_sequence_diagram.drawio.png}
+    \caption{FedGen-Rare Sequence Diagram --- one complete global communication round: Stage 1 (generator federated training) followed by Stage 2 (classifier training with generative replay) and global evaluation.}
+    \label{fig:uml_sequence}
+\end{figure}
+
+\subsection{Use Case Diagram}
+
+The use case diagram (Figure~\ref{fig:uml_usecase}) maps actor interactions with the system. The primary actors are the \textbf{Hospital Clinician} (data owner), the \textbf{Federated Server} (aggregator), and the \textbf{System Administrator} (configuration and benchmarking). Core use cases include local training, privacy-safe weight upload, global aggregation, and performance evaluation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\linewidth]{../uml/04_usecase_diagram.drawio.png}
+    \caption{FedGen-Rare Use Case Diagram --- actor-use-case relationships for Hospital Clinician, Federated Server, and System Administrator roles.}
+    \label{fig:uml_usecase}
+\end{figure}
 
 \newpage
 
