@@ -4,6 +4,16 @@ build_review2_docx.py
 Generates the publication-quality Senior Design Project (SDP) Review 2
 Slide-by-Slide Explanation & Oral Defense Guide in Word (.docx) format.
 
+Includes:
+- Full coverage of Slides 1 through 10
+- Deep technical and mathematical specifications (PI 3.1.3, PI 3.3.1, PI 3.3.3, PI 5.2.2, PI 12.1.2, PI 9.1.2/3)
+- Verbatim Oral Defense Scripts (Speaker Notes) in soft ice-blue callouts
+- Anticipated Reviewer Q&A in warm amber callouts
+- NEW: Plain-English Intuitive Explanations & Everyday Analogies in fresh mint/emerald callouts
+- Embedded High-Resolution UML Architecture Diagram (Slide 5)
+- Published SOTA Baseline Results Table (MICCAI '23) & 100% Artifact Breakdown (Slide 9)
+- Complete Review 2 Performance Indicator (PI) Mapping Matrix Table
+
 Institution: KLE Technological University, Hubballi
 Department: Computer Science and Engineering
 Course: 22ECAW401 - Senior Design Project (Semester VII)
@@ -29,10 +39,17 @@ HEX_SECONDARY_BLUE = "2563EB"
 HEX_SLATE_DARK = "1E293B"    # Body text
 HEX_MUTED_GRAY = "64748B"    # Captions, Metadata, Secondary text
 HEX_BORDER_GRAY = "CBD5E1"   # Table borders
+
+# Callout Palettes
 HEX_ICE_BLUE_BG = "F0F7FF"   # Oral Script Callout Background
 HEX_AMBER = "D97706"         # Q&A Accent Border
 HEX_AMBER_BG = "FFFBEB"      # Q&A Callout Background
 HEX_AMBER_DARK = "92400E"    # Question Text Color
+
+HEX_MINT_BG = "F0FDF4"       # Simple Words Callout Background
+HEX_EMERALD = "16A34A"       # Simple Words Accent Border
+HEX_EMERALD_DARK = "15803D"  # Simple Words Header/Label Color
+
 HEX_ZEBRA_ROW = "F8FAFC"     # Table Alternate Row Background
 HEX_CODE_BG = "F1F5F9"       # Code / ASCII block Background
 
@@ -42,6 +59,7 @@ RGB_SECONDARY_BLUE = RGBColor(37, 99, 235)
 RGB_SLATE_DARK = RGBColor(30, 41, 59)
 RGB_MUTED_GRAY = RGBColor(100, 116, 139)
 RGB_AMBER_DARK = RGBColor(146, 64, 14)
+RGB_EMERALD_DARK = RGBColor(21, 128, 61)
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +188,6 @@ def clean_math_symbols(s):
 # ---------------------------------------------------------------------------
 def apply_runs_to_paragraph(p, text, default_color=RGB_SLATE_DARK, default_italic=False, default_size=10.0):
     """Parses markdown inline bold (**text**), italic (*text*), code (`text`), and math ($text$)."""
-    # Regex pattern to capture tokens
     pattern = re.compile(r'(\*\*.*?\*\*|\*.*?\*|\`.*?\`|\$[^\$]+?\$|[^\*\`\$]+)')
     for match in pattern.finditer(text):
         token = match.group(0)
@@ -407,6 +424,47 @@ def add_qa_callout(doc, qa_pairs):
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
 
+def add_simple_words_callout(doc, items):
+    """Render Plain-English Intuitive Explanation in a soft mint/emerald card."""
+    table = doc.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
+    
+    cell = table.cell(0, 0)
+    cell.width = Inches(6.5)
+    set_cell_shading(cell, HEX_MINT_BG)
+    set_callout_borders(cell, HEX_EMERALD, border_sz="36")
+    set_cell_margins(cell, top=120, bottom=120, left=180, right=160)
+    
+    # Header inside callout
+    p_hdr = cell.paragraphs[0]
+    p_hdr.paragraph_format.space_before = Pt(0)
+    p_hdr.paragraph_format.space_after = Pt(4)
+    run_icon = p_hdr.add_run("💡  IN SIMPLE WORDS — INTUITIVE EXPLANATION & CONCEPTS")
+    run_icon.bold = True
+    run_icon.font.name = 'Calibri'
+    run_icon.font.size = Pt(10.0)
+    run_icon.font.color.rgb = RGB_EMERALD_DARK
+    
+    for item_idx, item in enumerate(items):
+        p_item = cell.add_paragraph()
+        p_item.paragraph_format.space_before = Pt(2)
+        p_item.paragraph_format.space_after = Pt(3 if item_idx < len(items) - 1 else 0)
+        p_item.paragraph_format.line_spacing = 1.12
+        if isinstance(item, tuple):
+            label, content = item
+            run_lbl = p_item.add_run(f"• {label}: ")
+            run_lbl.bold = True
+            run_lbl.font.name = 'Calibri'
+            run_lbl.font.size = Pt(9.5)
+            run_lbl.font.color.rgb = RGB_EMERALD_DARK
+            apply_runs_to_paragraph(p_item, content, default_color=RGB_SLATE_DARK, default_size=9.5)
+        else:
+            apply_runs_to_paragraph(p_item, item, default_color=RGB_SLATE_DARK, default_size=9.5)
+            
+    doc.add_paragraph().paragraph_format.space_after = Pt(2)
+
+
 def add_image_card(doc, img_path, caption_text, width_inches=6.2):
     """Embed high-resolution image with centered alignment and caption."""
     if not os.path.exists(img_path):
@@ -577,7 +635,9 @@ def build_executive_overview(doc):
         "and oral defense guide for the 10-slide presentation deck (`SDP_Review2_Presentation.pptx`) prepared for **SDP Review 2**. "
         "Every single slide is strictly mapped to the assessment parameters and Performance Indicators (PIs) established "
         "by the Department of Computer Science & Engineering, KLE Technological University (specifically PI 3.1.3, PI 3.3.1, "
-        "PI 3.3.3, PI 5.2.2, PI 12.1.2, PI 9.1.2, and PI 9.1.3)."
+        "PI 3.3.3, PI 5.2.2, PI 12.1.2, PI 9.1.2, and PI 9.1.3). "
+        "Crucially, for every slide, this document contains an **intuitive, plain-English breakdown with everyday analogies** "
+        "designed to explain complex concepts in simple words for effortless comprehension."
     )
     
     headers_rubric = ["Slide #", "Slide Title", "Primary Rubric Mapping", "Core Evaluation Deliverable"]
@@ -636,6 +696,17 @@ def build_slide_1(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "We are building a collaborative AI system that allows different hospitals to teach a computer how to detect an extremely rare, fatal lung disease without any hospital ever sharing its private patient medical scans outside its own building."),
+        ("Privacy-Preserving", "Imagine if a hospital could consult world-class medical specialists without ever revealing a patient's photo, name, or confidential record. The scans remain safely locked inside the local clinic firewall."),
+        ("Federated Learning", "In old-fashioned machine learning, all hospitals had to upload their private scans to one giant central cloud server. In Federated Learning, the data never travels. Instead, a copy of the AI program travels to each hospital, practices on the hospital's private scans on-site, and sends back only abstract numerical lessons (weights and gradients)—never actual images."),
+        ("Generative Replay", "In small rural clinics, a doctor might see an Idiopathic Pulmonary Fibrosis patient only once every few years, or never! Because the local AI has almost no real rare patients to learn from, our system generates artificial mathematical 'flashcards' of the rare disease right inside the clinic so the AI doesn't forget how to spot it."),
+        ("Idiopathic Pulmonary Fibrosis (IPF)", "'Idiopathic' means doctors do not know what causes it; 'Pulmonary Fibrosis' means lung tissue progressively turns into thick, stiff scar tissue until breathing becomes difficult."),
+        ("Why this Matters for Your Defense", "It immediately assures the panel that you understand the real-world medical, legal, and algorithmic significance of your project title rather than just repeating academic buzzwords.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_slide_2(doc):
     add_h1(doc, "Slide 2: Review 1 Feedback & Problem Formulation", rubric_tag="PI 3.1.3 / PI 12.1.2")
@@ -666,7 +737,7 @@ def build_slide_2(doc):
     script = [
         "In Review 1, the committee gave us invaluable guidance: they pointed out that federated learning across multiple heterogeneous rare diseases is fundamentally flawed, and advised us to narrow our scope to a single rare disease with an established baseline and clear scope for improvement.",
         "On Slide 2, we show how we embraced this feedback. We scientifically validated the panel's critique: disparate rare diseases use non-interoperable imaging modalities, induce conflicting gradient trajectories, and introduce insurmountable data governance barriers.",
-        "Consequently, we focused strictly on Idiopathic Pulmonary Fibrosis (IPF)—a lethal, data-scarce lung pathology. We identified our SOTA baseline: FedIIC, published at MICCAI 2023. While FedIIC handles mild long-tailed imbalance, we mathematically demonstrate that it collapses when applied to ultra-rare diseases where community hospitals have zero or one patient. Resolving this failure provides our clear scope for novel scientific contribution."
+        "Consequently, we focused strictly on Idiopathic Pulmonary Fibrosis (IPF)—a single, lethal rare disease where lack of hospital data is a genuine bottleneck. We identified our SOTA baseline: FedIIC, published at MICCAI 2023. While FedIIC handles mild long-tailed imbalance, we mathematically demonstrate that it collapses when applied to ultra-rare diseases where community hospitals have zero or one patient. Resolving this failure provides our clear scope for novel scientific contribution."
     ]
     add_oral_script_callout(doc, script)
     
@@ -678,6 +749,16 @@ def build_slide_2(doc):
          "FedIIC was published at MICCAI 2023 (Early Accept) specifically to solve class imbalance in federated medical imaging using Intra-Client Supervised Contrastive Learning (IntraSCL) and Dynamic Logit Adjustment (DALA). Because it is the current benchmark cited across literature, demonstrating its mathematical failure on rare diseases and proving our improvement provides the highest standard of scientific contribution.")
     ]
     add_qa_callout(doc, qa)
+
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "We addressed the Review 1 panel's feedback by dropping the unrealistic goal of solving multiple unrelated rare diseases at once, focusing strictly on one high-impact lung disease (IPF), and picking the world's leading benchmark algorithm (FedIIC from MICCAI 2023) to improve upon."),
+        ("The Everyday Analogy", "Trying to train one single AI to simultaneously look at eye photos, brain scans, and lung scans is like asking an eye surgeon to perform brain surgery while also acting as a pulmonologist. Retinal scans, brain MRIs, and lung CT scans look completely different; forcing one neural network to learn all three simultaneously creates conflicting gradients that scramble the model's memory."),
+        ("Focused Scope", "We narrowed down to Idiopathic Pulmonary Fibrosis (IPF)—a single, lethal rare disease where lack of hospital data is a genuine bottleneck."),
+        ("Targeted the State-of-the-Art", "Instead of inventing a problem or comparing against a weak baseline, we selected FedIIC, which was published at MICCAI 2023 (the premier medical AI conference globally)."),
+        ("Found the Scientific Vulnerability", "While FedIIC works reasonably well when a disease is mildly uncommon (like 20 patients out of 100), we mathematically proved that it completely collapses when a disease is truly rare (like a village clinic having zero patients). Fixing this failure is our project's core research contribution.")
+    ]
+    add_simple_words_callout(doc, simple_items)
 
 
 def build_slide_3(doc):
@@ -731,6 +812,16 @@ def build_slide_3(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "Idiopathic Pulmonary Fibrosis (IPF) is a deadly, under-diagnosed lung disease that mimics common smoker's cough, but small hospitals cannot train AI to catch it because they have too few patients, and privacy laws make it illegal to pool scans together."),
+        ("Why is IPF so Dangerous?", "Patients survive on average only 2 to 3 years after being diagnosed—worse than many advanced stage III and IV cancers. It is classified under rare disease registry code ORPHA:2032; fewer than 1 in 2,000 people have it, meaning rural community clinics rarely encounter it."),
+        ("The Diagnostic Trap on High-Resolution CT", "In its early stages, an IPF CT scan shows vague cloudy patches (Ground-Glass Opacities) that look nearly identical to ordinary bronchitis or smoking cough (COPD). The definitive clue is 'honeycombing'—tiny clustered holes that look like a beehive at the outer edges of the lungs. Because rural radiologists rarely see it, patients are often misdiagnosed for 1.5 to 2 years, missing the window for antifibrotic medications."),
+        ("The Catch-22 (Privacy-Scarcity Paradox)", "Small hospitals desperately need AI to catch IPF early before patients die. But small hospitals cannot build their own AI because they only have 1 or 2 scans. And privacy laws like HIPAA and GDPR make it strictly illegal to take private scans from 100 hospitals and dump them into one central database."),
+        ("The Federated Solution", "Federated learning is the only legally and clinically viable way to train an expert-level diagnostic AI across multi-center hospitals without moving a single patient's private scan.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_slide_4(doc):
     add_h1(doc, "Slide 4: System Requirements Specification", rubric_tag="PI 3.1.3")
@@ -782,6 +873,16 @@ def build_slide_4(doc):
          "In rare diseases with < 8% prevalence, standard classification accuracy suffers from the majority class illusion. A naive dummy classifier that assigns every patient to 'Normal' achieves 92% accuracy while having 0% recall on IPF. Therefore, we evaluate Balanced Accuracy (BACC) and IPF Recall to ensure clinical viability.")
     ]
     add_qa_callout(doc, qa)
+
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "This slide presents our complete system blueprint—listing exactly what the software must do (Functional Requirements) and the strict engineering rules it must follow (Non-Functional Requirements)."),
+        ("FR1 (Real-World Simulation)", "In real life, big academic hospitals see a few rare cases, regional hospitals see 1 or 2, and rural clinics see zero. We mathematically simulate this exact realistic split across 5 hospital computers using Dirichlet non-IID sampling (α = 0.2)."),
+        ("FR4 (Virtual Patient Replay)", "When a rural clinic trains its AI, if its local batch of scans has zero rare patients, our system injects realistic synthetic feature representations on-the-fly so the AI never stops practicing for rare diseases."),
+        ("NFR1 (The Zero-Leakage Privacy Rule)", "Under no circumstances do CT scans ever leave the hospital boundary. Only abstract mathematical numbers (model weights and 128-dimensional latent vectors) are communicated."),
+        ("Why Standard 'Accuracy' is a Lie", "Suppose a clinic has 100 patients: 95 have common coughs and only 5 have rare IPF. If a lazy, broken AI simply guesses 'Healthy' for every single person, it achieves 95% accuracy on paper! But all 5 rare disease patients will die undiagnosed because the AI failed them 100% of the time. That is why our specification enforces Balanced Accuracy (BACC) and IPF Recall (Sensitivity)—metrics that give equal importance to rare patients and measure if the AI actually saves their lives.")
+    ]
+    add_simple_words_callout(doc, simple_items)
 
 
 def build_slide_5(doc):
@@ -858,6 +959,15 @@ def build_slide_5(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "Our system architecture acts like a 'Head Professor' (Central Server) and 'Medical Interns' (Hospital edge computers) working together in a two-stage cycle to teach the AI without sharing private patient scans."),
+        ("Stage 1 (Teaching the Teacher)", "The central server sends an AI feature generator to all hospitals. The hospitals teach the generator how to understand lung patterns, and the server combines their lessons into one shared master generator."),
+        ("Stage 2 (Helping the Data-Starved Clinic)", "Now, the rural clinic (which has zero real IPF patients) uses this master generator to synthesize realistic 'feature fingerprints' of IPF on-the-fly. This allows the clinic's local diagnostic model to learn how to identify IPF even though no real IPF patient ever walked into that clinic!"),
+        ("The Clever Shortcut (Latent Features vs. Heavy Images)", "Instead of drawing giant, full-resolution 3D lung pictures (which takes hours of GPU time, requires millions of parameters, and risks drawing a recognizable patient feature), our generator only creates a compact 128-number summary fingerprint (a latent embedding vector). This is 20× faster, runs on ordinary hospital computers, and mathematically guarantees zero visual patient re-identification.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_slide_6(doc):
     add_h1(doc, "Slide 6: Baseline Analysis — Why FedIIC Fails on Rare Diseases", rubric_tag="PI 3.3.3 / PI 12.1.2")
@@ -911,6 +1021,15 @@ def build_slide_6(doc):
          "InterSCL shares globally averaged class prototypes, but it still relies on local encoders generating well-clustered features via IntraSCL. If a local client cannot form intra-client clusters due to zero or single samples, the local representation remains unaligned, and aligning it to global prototypes fails.")
     ]
     add_qa_callout(doc, qa)
+
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "We prove mathematically that the current world-standard algorithm (FedIIC, MICCAI 2023) completely crashes on rare diseases because its contrastive learning runs out of matching pairs and its margin adjustment tries to calculate the logarithm of zero."),
+        ("Flaw 1: The 'Spot the Difference' Trap (IntraSCL)", "Contrastive learning works by showing the AI two different pictures of the same rare disease (a 'positive pair') so it learns what they have in common. But what if a rural clinic has only ONE IPF scan in its entire building, or ZERO? You cannot form a pair out of a single scan! The positive pair count |P(i)| drops to zero, the formula divides by zero, and the AI receives zero learning signal for the rare disease."),
+        ("Flaw 2: The 'Rarity Penalty' Trap (DALA)", "FedIIC tries to be clever by adjusting its prediction threshold based on how frequently a disease appears in a clinic (π_c). In a clinic with zero IPF patients, the frequency is π_IPF = 0. The math evaluates log(0) = -∞. Even with tiny decimal smoothing, this applies a massive negative penalty of -16.11 to the rare class, effectively commanding the local model: 'Never, under any circumstances, predict this disease!' When these corrupted weights are averaged on the server, they poison the global AI."),
+        ("Our Fix", "Our federated generator manufactures realistic artificial feature pairs inside the clinic, ensuring matching pairs always exist and eliminating the log(0) breakdown.")
+    ]
+    add_simple_words_callout(doc, simple_items)
 
 
 def build_slide_7(doc):
@@ -989,6 +1108,15 @@ def build_slide_7(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "This slide provides the exact mathematical formulas and step-by-step algorithms that turn our generator into a realistic, non-hallucinating synthesizer for rare disease diagnosis."),
+        ("G_ψ(z, y) (The Synthesizer)", "You feed it random noise (z, like rolling a 64-sided die) and a class label (y = IPF), and it outputs a realistic 128-number disease fingerprint (f̂)."),
+        ("L_gen (How We Grade the Synthesizer)", "The generator is trained under a three-part loss function: (1) Diagnostic Accuracy (L_CE): Does the diagnostic model agree that this synthetic vector actually looks like IPF? (2) Feature Matching (L_FM): Is this synthetic vector anchored to real clinical scans, preventing the generator from inventing unrealistic sci-fi hallucinations? (3) Diversity Penalty (-L_DIV): Is the generator producing diverse variations of the disease, or is it lazily spitting out the exact same photocopy every single time?"),
+        ("The Three Algorithms in One Breath", "Algorithm 1 teaches the generator locally at each hospital. Algorithm 2 uses the generator to inject synthetic rare disease features whenever a training batch is missing rare cases. Algorithm 3 coordinates the central server to alternate between aggregating the generator and aggregating the diagnostic classifier.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_slide_8(doc):
     add_h1(doc, "Slide 8: Modern Tools & Module Testing Suite", rubric_tag="PI 5.2.2 / PI 12.1.2")
@@ -1060,6 +1188,14 @@ def build_slide_8(doc):
          "In `TestHospitalClient` and `TestFederatedServer`, our test assertions explicitly verify that the dictionaries uploaded to the server object contain only weight tensors (state_dict) and scalar metric summaries. Any assertion detecting image tensor keys immediately fails the test.")
     ]
     add_qa_callout(doc, qa)
+
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "Anyone can write math formulas on a slide, but this slide proves that our software actually exists, is built with modern industry-standard frameworks, and is validated by 31 automated tests that all pass with 100% success."),
+        ("The Engineering Toolchain", "PyTorch 2.14 powers neural networks and ResNet-18 backbones; Scikit-learn & NumPy calculate medical evaluation metrics (BACC, F1, AUROC) and Dirichlet non-IID data distributions; Draw.io & PlantUML generate formal UML software diagrams; LaTeX formats our 6-chapter technical engineering report; and pytest 9.1 executes our verification suite."),
+        ("The 31/31 Test Suite (Our Pre-Flight Inspection)", "Before an airliner takes off, technicians test every valve and sensor. We wrote 31 automated unit tests across 7 distinct test classes (tests/test_modules.py). These tests verify extreme edge cases: What happens if a clinic batch has only 1 patient? What if a clinic has 0 rare patients? Does the DALA loss crash on log(0)? Do feature vectors match exact dimensions? When we run 'pytest tests/test_modules.py -v', all 31 tests pass in 17.35 seconds with 0 errors. This guarantees that our architecture is robust and production-ready.")
+    ]
+    add_simple_words_callout(doc, simple_items)
 
 
 def build_slide_9(doc):
@@ -1133,6 +1269,14 @@ def build_slide_9(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "We explain why our early prototype got a misleading '100% accuracy' score (it was a brightness trick), show that the real published baseline (FedIIC, MICCAI 2023) has a massive 24% to 55% error gap in real clinical benchmarks, and prove that our project solves a genuine unsolved problem."),
+        ("The Trap of the Early '100% Score' (The Brightness Trick)", "In our earliest toy tests, the computer-generated test images were accidentally given different brightness levels: Normal lungs were dim (0.20), COPD was medium (0.25), and IPF was bright (0.35). Even a primitive, 10-year-old algorithm could score 100% just by checking overall brightness—like sorting laundry into white and dark piles! In real clinical High-Resolution CT, this is totally false. Real lungs with COPD and real lungs with IPF have the exact same gray parenchymal brightness. Differentiating them requires detecting microscopic honeycomb scars and bronchial dilations, not checking pixel brightness."),
+        ("The Published Reality of FedIIC (MICCAI 2023)", "In the official peer-reviewed paper on real medical datasets, FedIIC only achieved 65.8% balanced accuracy on skin lesions (a 34.2% error gap) and 44.9% accuracy on class-skewed images (a 55.1% error gap!). FedIIC is far from solved. It has a proven 24% to 55% error rate on real-world medical data, and its performance collapses even further in true rare diseases. That gap is our project's direct target.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_slide_10(doc):
     add_h1(doc, "Slide 10: Thank You & Discussion", rubric_tag="PI 9.1.3")
@@ -1174,6 +1318,13 @@ def build_slide_10(doc):
     ]
     add_qa_callout(doc, qa)
 
+    add_h2(doc, "6. Plain-English Intuitive Explanation (In Simple Words)")
+    simple_items = [
+        ("The Core Idea in One Sentence", "This final slide brings our Review 2 defense to a confident close, summarizing how we fulfilled all Rubric Performance Indicators, open-sourcing our code on GitHub, and laying out our roadmap for full multi-round training in Review 3."),
+        ("The Defense Takeaway Message in Plain Language", "We listened and adapted: addressed Review 1 critique by focusing on Idiopathic Pulmonary Fibrosis. We specified the problem (PI 3.1.3): detailed clinical constraints, functional requirements, and privacy mandates. We architected the solution (PI 3.3.1): built a pictorial two-stage federated pipeline with full UML modeling. We formalized the math (PI 3.3.3): defined algorithms and multi-task loss functions with strict input/output specifications. We verified the software (PI 5.2.2 / 12.1.2): built an automated test suite with 31/31 passing tests. We proved the research gap: documented the published 24% to 55% error rate in the current state of the art. Next steps for Review 3: Full multi-round comparative training across 5 hospital nodes comparing FedAvg, FedProx, FedIIC, and FedGen-Rare to prove our diagnostic gains.")
+    ]
+    add_simple_words_callout(doc, simple_items)
+
 
 def build_pi_matrix(doc):
     """Build the final Review 2 Performance Indicator (PI) Mapping Matrix."""
@@ -1191,7 +1342,7 @@ def build_pi_matrix(doc):
         ["**PI 5.2.2**", "Apply domain-specific tools, platforms, libraries, simulators, and automated testing suites", "**Slide 8**", "PyTorch 2.14, Scikit-learn, Draw.io, LaTeX (`SDP_Review2_Report.tex`), pytest 9.1", "**Excellent (8–10)**"],
         ["**PI 12.1.2**", "Construct software system using OOP paradigm, coding standards, and module testing", "**Slide 8**", "`tests/test_modules.py` (31/31 passing unit tests across 7 classes in 17.35 seconds)", "**Excellent (8–10)**"],
         ["**PI 9.1.2**", "Organize and produce well-structured content in document or presentation with clear logical flow", "**Entire Deck (Slides 1–10)**", "10-slide PowerPoint deck (`SDP_Review2_Presentation.pptx`) + LaTeX report (`docs/report/`)", "**Excellent (8–10)**"],
-        ["**PI 9.1.3**", "Deliver effective oral presentation to technical and non-technical audiences", "**Defense Delivery**", "Detailed speaker notes and Q&A defense scripts provided for every slide", "**Excellent (8–10)**"],
+        ["**PI 9.1.3**", "Deliver effective oral presentation to technical and non-technical audiences", "**Defense Delivery**", "Detailed speaker notes, plain-English analogies, and Q&A defense scripts provided for every slide", "**Excellent (8–10)**"],
     ]
     add_styled_table(doc, headers_pi, data_pi, col_widths=[1.1, 2.0, 1.2, 1.3, 0.9],
                      alignments=[WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
@@ -1259,7 +1410,7 @@ def main():
     build_cover_and_metadata(doc)
     build_executive_overview(doc)
     
-    print("[3/5] Building Slide Explanations (Slides 1 to 10)...")
+    print("[3/5] Building Slide Explanations with Plain-English Intuitive Cards (Slides 1 to 10)...")
     build_slide_1(doc)
     build_slide_2(doc)
     build_slide_3(doc)
